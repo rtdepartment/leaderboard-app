@@ -7,7 +7,7 @@ export default function LeaderboardPage() {
   const [stats, setStats] = useState([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('default')
-  const [minGames, setMinGames] = useState(5)
+  const [minGames, setMinGames] = useState(0)
   const [activeTooltip, setActiveTooltip] = useState(null)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [playerGames, setPlayerGames] = useState([])
@@ -586,19 +586,6 @@ export default function LeaderboardPage() {
               <option value="net_rating">Net Rating</option>
             </select>
           </div>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-            <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
-              Min Games
-            </label>
-            <input 
-              type="number" 
-              className="px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:ring-blue-500 focus:border-blue-500 w-full sm:w-20"
-              value={minGames}
-              onChange={(e) => setMinGames(parseInt(e.target.value) || 0)}
-              min="0"
-            />
-          </div>
         </div>
 
         {/* Table Container */}
@@ -907,7 +894,7 @@ export default function LeaderboardPage() {
                         </span>
                       </div>
                       <div className="text-center">
-                        <span className="font-bold" 
+                        <span className="font-bold text-gray-900" 
                               style={{ fontSize: window.innerWidth < 768 ? '20px' : '24px' }}>
                           {game.playerScore} - {game.opponentScore}
                         </span>
@@ -936,22 +923,22 @@ export default function LeaderboardPage() {
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <div className="flex justify-around text-center">
                         <div>
-                          <div className="text-green-600 font-bold text-lg">
+                          <div className="text-green-700 font-bold text-lg">
                             {playerGames.filter(g => g.result === 'W').length}
                           </div>
-                          <div className="text-gray-500 text-xs">Wins</div>
+                          <div className="text-gray-600 text-xs font-medium">Wins</div>
                         </div>
                         <div>
-                          <div className="text-red-600 font-bold text-lg">
+                          <div className="text-red-700 font-bold text-lg">
                             {playerGames.filter(g => g.result === 'L').length}
                           </div>
-                          <div className="text-gray-500 text-xs">Losses</div>
+                          <div className="text-gray-600 text-xs font-medium">Losses</div>
                         </div>
                         <div>
-                          <div className="text-gray-600 font-bold text-lg">
+                          <div className="text-gray-700 font-bold text-lg">
                             {playerGames.filter(g => g.result === 'T').length}
                           </div>
-                          <div className="text-gray-500 text-xs">Ties</div>
+                          <div className="text-gray-600 text-xs font-medium">Ties</div>
                         </div>
                       </div>
                     </div>
