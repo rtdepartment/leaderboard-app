@@ -7,7 +7,7 @@ export default function LeaderboardPage() {
   const [stats, setStats] = useState([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('default')
-  const [minGames, setMinGames] = useState(0)
+  const [minGames, setMinGames] = useState(5)
   const [activeTooltip, setActiveTooltip] = useState(null)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [playerGames, setPlayerGames] = useState([])
@@ -562,7 +562,7 @@ export default function LeaderboardPage() {
         {/* Header */}
         <div className="mb-4 sm:mb-6">
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 px-2">
-            Leaderboard
+            Strikers Leaderboard
           </h1>
         </div>
 
