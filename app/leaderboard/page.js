@@ -291,6 +291,20 @@ export default function LeaderboardPage() {
     }
   }
 
+  // Helper function to get team name
+  const getTeamName = (team) => {
+    return team === 'A' ? 'Black' : 'White'
+  }
+
+  // Helper function to get team color styling
+  const getTeamStyle = (team) => {
+    if (team === 'A') {
+      return { color: '#1f2937', fontWeight: '600' } // Black team - dark gray
+    } else {
+      return { color: '#6b7280', fontWeight: '600' } // White team - medium gray
+    }
+  }
+
   // Country flag helper function
   const getCountryFlag = (countryCode) => {
     const flags = {
@@ -798,6 +812,7 @@ export default function LeaderboardPage() {
                         <span className="text-gray-600" style={{ fontSize: '9px' }}>
                           {player.last_played 
                             ? new Date(player.last_played + 'T12:00:00').toLocaleDateString('en-US', { 
+                                weekday: 'short',
                                 month: 'short', 
                                 day: 'numeric'
                               })
@@ -877,9 +892,9 @@ export default function LeaderboardPage() {
                         <span className="text-gray-600" 
                               style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px' }}>
                           {new Date(game.date).toLocaleDateString('en-US', {
+                            weekday: 'short',
                             month: 'short',
-                            day: 'numeric',
-                            year: '2-digit'
+                            day: 'numeric'
                           })}
                         </span>
                         <span className={`
@@ -888,7 +903,7 @@ export default function LeaderboardPage() {
                             game.result === 'L' ? 'bg-red-100 text-red-800' : 
                             'bg-gray-100 text-gray-800'}
                         `} style={{ fontSize: window.innerWidth < 768 ? '11px' : '12px' }}>
-                          {game.result}
+                          {game.result === 'W' ? 'WIN' : game.result === 'L' ? 'LOSS' : 'TIE'}
                         </span>
                       </div>
                       <div className="text-center">
@@ -897,9 +912,21 @@ export default function LeaderboardPage() {
                           {game.playerScore} - {game.opponentScore}
                         </span>
                       </div>
-                      <div className="text-gray-500 text-center mt-1"
-                           style={{ fontSize: window.innerWidth < 768 ? '10px' : '11px' }}>
-                        Team {game.playerTeam} vs Team {game.playerTeam === 'A' ? 'B' : 'A'}
+                      <div className="text-center mt-1"
+                           style={{ fontSize: window.innerWidth < 768 ? '11px' : '12px' }}>
+                        <span style={{
+                          ...getTeamStyle(game.playerTeam),
+                          backgroundColor: game.playerTeam === 'A' ? '#f3f4f6' : '#ffffff',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          border: game.playerTeam === 'A' ? '1px solid #374151' : '1px solid #d1d5db'
+                        }}>
+                          {game.playerTeam === 'A' ? '⚫' : '⚪'} {getTeamName(game.playerTeam)}
+                        </span>
+                        <span style={{ color: '#9ca3af', margin: '0 4px' }}>vs</span>
+                        <span style={getTeamStyle(game.playerTeam === 'A' ? 'B' : 'A')}>
+                          {game.playerTeam === 'A' ? '⚪' : '⚫'} {getTeamName(game.playerTeam === 'A' ? 'B' : 'A')}
+                        </span>
                       </div>
                     </div>
                   ))}
