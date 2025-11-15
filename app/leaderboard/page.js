@@ -43,6 +43,7 @@ export default function LeaderboardPage() {
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           max-width: 100vw;
+          position: relative;
         }
 
         .table-container::-webkit-scrollbar {
@@ -59,104 +60,143 @@ export default function LeaderboardPage() {
         }
 
         .leaderboard-table {
-          min-width: 750px;
+          min-width: 800px;
+          border-collapse: separate;
+          border-spacing: 0;
         }
 
         .leaderboard-table th {
-          padding: 6px 3px;
+          padding: 6px 2px;
           font-size: 9px;
           white-space: nowrap;
         }
 
         .leaderboard-table td {
-          padding: 6px 3px;
+          padding: 6px 2px;
           font-size: 11px;
           white-space: nowrap;
         }
 
-        .power-badge {
-          padding: 2px 4px !important;
-          font-size: 10px !important;
-          min-width: 35px !important;
-        }
-
-        .player-name {
-          max-width: 70px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-size: 11px;
-        }
-
-        .country-flag {
-          font-size: 14px;
-        }
-
-        /* Sticky columns with proper backgrounds */
+        /* Sticky columns with fixed positioning */
         .sticky-col {
           position: sticky;
           left: 0;
-          z-index: 11;
-          background: inherit;
+          z-index: 12;
+          width: 25px;
           min-width: 25px;
+          max-width: 25px;
         }
 
         .sticky-col-player {
           position: sticky;
           left: 25px;
-          z-index: 10;
-          background: inherit;
-          box-shadow: 2px 0 4px -2px rgba(0,0,0,0.1);
-          min-width: 85px;
-          max-width: 85px;
+          z-index: 11;
+          width: 65px;
+          min-width: 65px;
+          max-width: 65px;
+          border-right: 1px solid #e5e7eb;
         }
 
-        /* Ensure backgrounds are opaque for sticky columns */
-        tbody tr td.sticky-col,
-        tbody tr td.sticky-col-player {
+        /* Header sticky columns */
+        thead th.sticky-col,
+        thead th.sticky-col-player {
+          background-color: #111827 !important;
+        }
+
+        /* Body sticky columns with proper backgrounds */
+        tbody td.sticky-col,
+        tbody td.sticky-col-player {
           background-color: white;
         }
 
         tbody tr.bg-yellow-50 td.sticky-col,
         tbody tr.bg-yellow-50 td.sticky-col-player {
-          background-color: rgb(254 252 232) !important;
+          background-color: #fef3c7 !important;
         }
 
         tbody tr.bg-gray-50 td.sticky-col,
         tbody tr.bg-gray-50 td.sticky-col-player {
-          background-color: rgb(249 250 251) !important;
+          background-color: #f9fafb !important;
         }
 
         tbody tr.bg-orange-50 td.sticky-col,
         tbody tr.bg-orange-50 td.sticky-col-player {
-          background-color: rgb(255 251 235) !important;
+          background-color: #fed7aa !important;
         }
 
-        tbody tr:hover td.sticky-col,
-        tbody tr:hover td.sticky-col-player {
-          background-color: inherit !important;
+        /* Hover states */
+        tbody tr:hover td.sticky-col {
+          background-color: #f3f4f6 !important;
+        }
+        
+        tbody tr.bg-yellow-50:hover td.sticky-col,
+        tbody tr.bg-yellow-50:hover td.sticky-col-player {
+          background-color: #fde68a !important;
+        }
+
+        tbody tr.bg-gray-50:hover td.sticky-col,
+        tbody tr.bg-gray-50:hover td.sticky-col-player {
+          background-color: #e5e7eb !important;
+        }
+
+        tbody tr.bg-orange-50:hover td.sticky-col,
+        tbody tr.bg-orange-50:hover td.sticky-col-player {
+          background-color: #fed7aa !important;
+        }
+
+        .power-badge {
+          padding: 1px 4px !important;
+          font-size: 10px !important;
+          min-width: 35px !important;
+        }
+
+        .player-name {
+          max-width: 50px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 10px;
+          display: inline-block;
+        }
+
+        .country-flag {
+          font-size: 12px;
+        }
+
+        /* Make Win% text darker on mobile */
+        .win-pct-mobile {
+          color: #1f2937 !important;
+          font-weight: 600 !important;
         }
       }
 
       @media (max-width: 480px) {
         .leaderboard-table th {
-          padding: 5px 2px;
+          padding: 4px 2px;
           font-size: 8px;
         }
 
         .leaderboard-table td {
-          padding: 5px 2px;
+          padding: 4px 2px;
           font-size: 10px;
         }
 
         .player-name {
-          max-width: 60px;
-          font-size: 10px;
+          max-width: 45px;
+          font-size: 9px;
         }
 
         .sticky-col-player {
-          min-width: 75px;
-          max-width: 75px;
+          width: 60px;
+          min-width: 60px;
+          max-width: 60px;
+          left: 20px;
+        }
+
+        .sticky-col {
+          width: 20px;
+          min-width: 20px;
+          max-width: 20px;
         }
       }
     `;
@@ -439,6 +479,12 @@ export default function LeaderboardPage() {
                 {sortedStats.map((player, index) => {
                   const rank = index + 1
                   const winPct = player.win_percentage || 0
+                  const bgClass = rank === 1 ? 'bg-yellow-50' : 
+                                 rank === 2 ? 'bg-gray-50' : 
+                                 rank === 3 ? 'bg-orange-50' : ''
+                  const bgColor = rank === 1 ? '#fef3c7' : 
+                                 rank === 2 ? '#f9fafb' : 
+                                 rank === 3 ? '#fed7aa' : 'white'
                   
                   return (
                     <tr 
@@ -451,15 +497,8 @@ export default function LeaderboardPage() {
                           'hover:bg-gray-50'}
                       `}
                     >
-                      <td className={`sticky-col px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm ${
-                        rank === 1 ? 'bg-yellow-50' : 
-                        rank === 2 ? 'bg-gray-50' : 
-                        rank === 3 ? 'bg-orange-50' : 'bg-white'
-                      }`} style={{
-                        backgroundColor: rank === 1 ? 'rgb(254 252 232)' : 
-                                       rank === 2 ? 'rgb(249 250 251)' : 
-                                       rank === 3 ? 'rgb(255 251 235)' : 'white'
-                      }}>
+                      <td className={`sticky-col px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm ${bgClass}`}
+                          style={{ backgroundColor: bgColor }}>
                         <span className={`
                           ${rank <= 3 ? 'font-bold' : 'font-normal'}
                           ${rank === 1 ? 'text-yellow-600' : 
@@ -470,20 +509,13 @@ export default function LeaderboardPage() {
                         </span>
                       </td>
                       
-                      <td className={`sticky-col-player px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm ${
-                        rank === 1 ? 'bg-yellow-50' : 
-                        rank === 2 ? 'bg-gray-50' : 
-                        rank === 3 ? 'bg-orange-50' : 'bg-white'
-                      }`} style={{
-                        backgroundColor: rank === 1 ? 'rgb(254 252 232)' : 
-                                       rank === 2 ? 'rgb(249 250 251)' : 
-                                       rank === 3 ? 'rgb(255 251 235)' : 'white'
-                      }}>
-                        <div className="flex items-center gap-1">
+                      <td className={`sticky-col-player px-1 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm ${bgClass}`}
+                          style={{ backgroundColor: bgColor }}>
+                        <div className="flex items-center gap-1" style={{ maxWidth: '65px' }}>
                           {player.country && (
-                            <span className="country-flag text-sm sm:text-lg">{getCountryFlag(player.country)}</span>
+                            <span className="country-flag flex-shrink-0">{getCountryFlag(player.country)}</span>
                           )}
-                          <span className="player-name font-medium text-gray-900 capitalize text-xs sm:text-sm">
+                          <span className="player-name font-medium text-gray-900 capitalize">
                             {player.name}
                           </span>
                         </div>
@@ -506,7 +538,9 @@ export default function LeaderboardPage() {
                       </td>
                       
                       <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
-                        <span className="font-medium">{winPct.toFixed(1)}%</span>
+                        <span className="win-pct-mobile font-medium sm:text-gray-900">
+                          {winPct.toFixed(1)}%
+                        </span>
                       </td>
                       
                       <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
@@ -554,12 +588,12 @@ export default function LeaderboardPage() {
                           className="power-badge"
                           style={{
                             display: 'inline-block',
-                            padding: '3px 8px',
-                            borderRadius: player.power_rating >= 70 ? '12px' : 
-                                         player.power_rating >= 50 ? '10px' :
-                                         player.power_rating >= 30 ? '8px' : '6px',
+                            padding: '2px 6px',
+                            borderRadius: player.power_rating >= 70 ? '10px' : 
+                                         player.power_rating >= 50 ? '8px' :
+                                         player.power_rating >= 30 ? '6px' : '4px',
                             fontWeight: 'bold',
-                            fontSize: '11px',
+                            fontSize: '10px',
                             background: player.power_rating >= 70 
                               ? 'linear-gradient(135deg, #0F766E, #10B981)'
                               : player.power_rating >= 50 
@@ -569,9 +603,9 @@ export default function LeaderboardPage() {
                               : 'linear-gradient(135deg, #F472B6, #EF4444)',
                             color: 'white',
                             boxShadow: player.power_rating >= 70 
-                              ? '0 2px 4px rgba(16, 185, 129, 0.3)'
-                              : '0 1px 3px rgba(0,0,0,0.1)',
-                            minWidth: '42px'
+                              ? '0 1px 3px rgba(16, 185, 129, 0.3)'
+                              : '0 1px 2px rgba(0,0,0,0.1)',
+                            minWidth: '35px'
                           }}
                         >
                           {player.power_rating?.toFixed(1) || '0.0'}
@@ -579,13 +613,13 @@ export default function LeaderboardPage() {
                       </td>
                       
                       <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
-                        <span className="text-gray-600 text-xs">
+                        <span className="text-gray-600" style={{ fontSize: '9px' }}>
                           {player.last_played 
                             ? new Date(player.last_played + 'T12:00:00').toLocaleDateString('en-US', { 
                                 month: 'short', 
                                 day: 'numeric'
                               })
-                            : 'Never'}
+                            : '-'}
                         </span>
                       </td>
                     </tr>
