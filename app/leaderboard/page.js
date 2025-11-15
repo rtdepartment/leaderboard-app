@@ -59,68 +59,104 @@ export default function LeaderboardPage() {
         }
 
         .leaderboard-table {
-          min-width: 600px;
+          min-width: 750px;
         }
 
         .leaderboard-table th {
-          padding: 8px 4px;
-          font-size: 10px;
+          padding: 6px 3px;
+          font-size: 9px;
           white-space: nowrap;
         }
 
         .leaderboard-table td {
-          padding: 8px 4px;
-          font-size: 12px;
+          padding: 6px 3px;
+          font-size: 11px;
           white-space: nowrap;
         }
 
         .power-badge {
-          padding: 2px 6px !important;
-          font-size: 11px !important;
-          min-width: 40px !important;
+          padding: 2px 4px !important;
+          font-size: 10px !important;
+          min-width: 35px !important;
         }
 
         .player-name {
-          max-width: 100px;
+          max-width: 70px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          font-size: 11px;
         }
 
-        /* Hide tooltips on mobile */
-        .tooltip-trigger:hover .tooltip-content {
-          display: none;
+        .country-flag {
+          font-size: 14px;
         }
 
-        /* Sticky first column on mobile */
+        /* Sticky columns with proper backgrounds */
         .sticky-col {
           position: sticky;
           left: 0;
-          z-index: 10;
+          z-index: 11;
           background: inherit;
+          min-width: 25px;
         }
 
         .sticky-col-player {
           position: sticky;
-          left: 30px;
+          left: 25px;
           z-index: 10;
           background: inherit;
+          box-shadow: 2px 0 4px -2px rgba(0,0,0,0.1);
+          min-width: 85px;
+          max-width: 85px;
+        }
+
+        /* Ensure backgrounds are opaque for sticky columns */
+        tbody tr td.sticky-col,
+        tbody tr td.sticky-col-player {
+          background-color: white;
+        }
+
+        tbody tr.bg-yellow-50 td.sticky-col,
+        tbody tr.bg-yellow-50 td.sticky-col-player {
+          background-color: rgb(254 252 232) !important;
+        }
+
+        tbody tr.bg-gray-50 td.sticky-col,
+        tbody tr.bg-gray-50 td.sticky-col-player {
+          background-color: rgb(249 250 251) !important;
+        }
+
+        tbody tr.bg-orange-50 td.sticky-col,
+        tbody tr.bg-orange-50 td.sticky-col-player {
+          background-color: rgb(255 251 235) !important;
+        }
+
+        tbody tr:hover td.sticky-col,
+        tbody tr:hover td.sticky-col-player {
+          background-color: inherit !important;
         }
       }
 
       @media (max-width: 480px) {
         .leaderboard-table th {
-          padding: 6px 2px;
-          font-size: 9px;
+          padding: 5px 2px;
+          font-size: 8px;
         }
 
         .leaderboard-table td {
-          padding: 6px 2px;
-          font-size: 11px;
+          padding: 5px 2px;
+          font-size: 10px;
         }
 
-        .hide-mobile-small {
-          display: none !important;
+        .player-name {
+          max-width: 60px;
+          font-size: 10px;
+        }
+
+        .sticky-col-player {
+          min-width: 75px;
+          max-width: 75px;
         }
       }
     `;
@@ -363,25 +399,25 @@ export default function LeaderboardPage() {
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     L
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider hide-mobile-small">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     T
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     Win%
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider hide-mobile-small">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     GD
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider hidden lg:table-cell">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     OFF
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider hidden lg:table-cell">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     DEF
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     NET
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider hidden sm:table-cell">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     STRK
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
@@ -394,7 +430,7 @@ export default function LeaderboardPage() {
                       PWR
                     </span>
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider hidden xl:table-cell">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     LAST
                   </th>
                 </tr>
@@ -419,7 +455,11 @@ export default function LeaderboardPage() {
                         rank === 1 ? 'bg-yellow-50' : 
                         rank === 2 ? 'bg-gray-50' : 
                         rank === 3 ? 'bg-orange-50' : 'bg-white'
-                      }`}>
+                      }`} style={{
+                        backgroundColor: rank === 1 ? 'rgb(254 252 232)' : 
+                                       rank === 2 ? 'rgb(249 250 251)' : 
+                                       rank === 3 ? 'rgb(255 251 235)' : 'white'
+                      }}>
                         <span className={`
                           ${rank <= 3 ? 'font-bold' : 'font-normal'}
                           ${rank === 1 ? 'text-yellow-600' : 
@@ -434,10 +474,14 @@ export default function LeaderboardPage() {
                         rank === 1 ? 'bg-yellow-50' : 
                         rank === 2 ? 'bg-gray-50' : 
                         rank === 3 ? 'bg-orange-50' : 'bg-white'
-                      }`}>
-                        <div className="flex items-center gap-1 sm:gap-2">
+                      }`} style={{
+                        backgroundColor: rank === 1 ? 'rgb(254 252 232)' : 
+                                       rank === 2 ? 'rgb(249 250 251)' : 
+                                       rank === 3 ? 'rgb(255 251 235)' : 'white'
+                      }}>
+                        <div className="flex items-center gap-1">
                           {player.country && (
-                            <span className="text-sm sm:text-lg">{getCountryFlag(player.country)}</span>
+                            <span className="country-flag text-sm sm:text-lg">{getCountryFlag(player.country)}</span>
                           )}
                           <span className="player-name font-medium text-gray-900 capitalize text-xs sm:text-sm">
                             {player.name}
@@ -457,7 +501,7 @@ export default function LeaderboardPage() {
                         <span className="text-red-600 font-medium">{player.losses || 0}</span>
                       </td>
                       
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm hide-mobile-small">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
                         <span className="text-gray-500">{player.ties || 0}</span>
                       </td>
                       
@@ -465,7 +509,7 @@ export default function LeaderboardPage() {
                         <span className="font-medium">{winPct.toFixed(1)}%</span>
                       </td>
                       
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm hide-mobile-small">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
                         <span className={`font-medium ${
                           player.goal_differential > 0 ? 'text-green-600' : 
                           player.goal_differential < 0 ? 'text-red-600' : 'text-gray-400'
@@ -474,13 +518,13 @@ export default function LeaderboardPage() {
                         </span>
                       </td>
                       
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center hidden lg:table-cell text-xs sm:text-sm">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
                         <span className="text-gray-600">
                           {player.avg_goals_for?.toFixed(1) || '0.0'}
                         </span>
                       </td>
                       
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center hidden lg:table-cell text-xs sm:text-sm">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
                         <span className="text-gray-600">
                           {player.avg_goals_against?.toFixed(1) || '0.0'}
                         </span>
@@ -495,7 +539,7 @@ export default function LeaderboardPage() {
                         </span>
                       </td>
                       
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center hidden sm:table-cell text-xs sm:text-sm">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
                         <span className={`font-medium ${
                           player.current_streak?.includes('W') ? 'text-green-600' : 
                           player.current_streak?.includes('L') ? 'text-red-600' : 'text-gray-400'
@@ -534,7 +578,7 @@ export default function LeaderboardPage() {
                         </div>
                       </td>
                       
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center hidden xl:table-cell text-xs sm:text-sm">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
                         <span className="text-gray-600 text-xs">
                           {player.last_played 
                             ? new Date(player.last_played + 'T12:00:00').toLocaleDateString('en-US', { 

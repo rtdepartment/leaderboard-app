@@ -28,3 +28,25 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { Analytics } from '@vercel/analytics/react'  // Note: /react not /next
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata = {
+  title: 'FIFA Leaderboard',
+  description: 'Track your FIFA stats',
+}
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
+        {children}
+        <Analytics />  {/* Add this line */}
+      </body>
+    </html>
+  )
+}
