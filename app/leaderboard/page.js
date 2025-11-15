@@ -422,32 +422,33 @@ export default function LeaderboardPage() {
     
     try {
       // Get player's game participations
-      const { data: gameData, error: gameError } = await supabase
+      const { data: gamePlayerData, error: gpError } = await supabase
         .from('game_players')
         .select('game_id, team')
         .eq('player_id', playerId)
         .order('game_id', { ascending: false })
         .limit(5)
 
-      if (gameError) throw gameError
+      if (gpError) throw gpError
 
-      if (gameData && gameData.length > 0) {
+      if (gamePlayerData && gamePlayerData.length > 0) {
         // Get game details
+        const gameIds = gamePlayerData.map(gp => gp.game_id)
+        
         const { data: games, error: gamesError } = await supabase
           .from('games')
-          .select('*')
-          .in('id', gameData.map(g => g.game_id))
-          .order('date', { ascending: false })
+          .select('id, game_date, team_a_score, team_b_score')
+          .in('id', gameIds)
+          .order('game_date', { ascending: false })
 
         if (gamesError) throw gamesError
 
         // Format games with player's team info
         const formattedGames = games.map(game => {
-          const playerGame = gameData.find(g => g.game_id === game.id)
-          const playerTeam = playerGame.team
-          const opponentTeam = playerTeam === 1 ? 2 : 1
-          const playerScore = playerTeam === 1 ? game.team1_score : game.team2_score
-          const opponentScore = playerTeam === 1 ? game.team2_score : game.team1_score
+          const playerGame = gamePlayerData.find(gp => gp.game_id === game.id)
+          const playerTeam = playerGame.team // This is 'A' or 'B'
+          const playerScore = playerTeam === 'A' ? game.team_a_score : game.team_b_score
+          const opponentScore = playerTeam === 'A' ? game.team_b_score : game.team_a_score
           
           let result = 'T'
           if (playerScore > opponentScore) result = 'W'
@@ -455,6 +456,7 @@ export default function LeaderboardPage() {
           
           return {
             ...game,
+            date: game.game_date,
             playerTeam,
             playerScore,
             opponentScore,
@@ -816,71 +818,127 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
-      {/* Player Modal */}
+      {/* Player Modal - Mobile Optimized */}
       {selectedPlayer && (
         <div className="player-modal" onClick={closePlayerModal}>
-          <div className="player-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div 
+            className="player-modal-content" 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: window.innerWidth < 768 ? '95%' : '500px',
+              maxHeight: window.innerWidth < 768 ? '80vh' : '70vh',
+              margin: window.innerWidth < 768 ? '10px' : '20px'
+            }}
+          >
             {/* Modal Header */}
             <div style={{
               backgroundColor: '#f3f4f6',
-              padding: '16px 24px',
+              padding: window.innerWidth < 768 ? '12px 16px' : '16px 24px',
               borderBottom: '1px solid #e5e7eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <h2 className="text-lg font-semibold text-gray-900 capitalize">
+              <h2 className="font-semibold text-gray-900 capitalize" 
+                  style={{ fontSize: window.innerWidth < 768 ? '16px' : '18px' }}>
                 {selectedPlayer.name}'s Last 5 Games
               </h2>
               <button 
                 onClick={closePlayerModal}
                 className="text-gray-400 hover:text-gray-600"
-                style={{ fontSize: '24px', lineHeight: '1' }}
+                style={{ 
+                  fontSize: window.innerWidth < 768 ? '28px' : '24px', 
+                  lineHeight: '1',
+                  padding: '4px',
+                  marginRight: '-4px'
+                }}
               >
                 ×
               </button>
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '20px', overflowY: 'auto' }}>
+            <div style={{ 
+              padding: window.innerWidth < 768 ? '12px' : '20px', 
+              overflowY: 'auto',
+              maxHeight: 'calc(100% - 60px)'
+            }}>
               {loadingGames ? (
                 <div className="text-center py-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                  <p className="text-sm text-gray-600 mt-2">Loading games...</p>
                 </div>
               ) : playerGames.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {playerGames.map((game, idx) => (
-                    <div key={game.id} className="border rounded-lg p-3 bg-gray-50">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm text-gray-600">
+                    <div key={game.id} className="border rounded-lg bg-gray-50" 
+                         style={{ padding: window.innerWidth < 768 ? '10px' : '12px' }}>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-600" 
+                              style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px' }}>
                           {new Date(game.date).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
-                            year: 'numeric'
+                            year: '2-digit'
                           })}
                         </span>
                         <span className={`
-                          px-2 py-1 rounded text-xs font-bold
+                          px-2 py-1 rounded font-bold
                           ${game.result === 'W' ? 'bg-green-100 text-green-800' : 
                             game.result === 'L' ? 'bg-red-100 text-red-800' : 
                             'bg-gray-100 text-gray-800'}
-                        `}>
+                        `} style={{ fontSize: window.innerWidth < 768 ? '11px' : '12px' }}>
                           {game.result}
                         </span>
                       </div>
                       <div className="text-center">
-                        <span className="text-2xl font-bold">
+                        <span className="font-bold" 
+                              style={{ fontSize: window.innerWidth < 768 ? '20px' : '24px' }}>
                           {game.playerScore} - {game.opponentScore}
                         </span>
                       </div>
-                      <div className="text-xs text-gray-500 text-center mt-1">
-                        Team {game.playerTeam} vs Team {game.playerTeam === 1 ? 2 : 1}
+                      <div className="text-gray-500 text-center mt-1"
+                           style={{ fontSize: window.innerWidth < 768 ? '10px' : '11px' }}>
+                        Team {game.playerTeam} vs Team {game.playerTeam === 'A' ? 'B' : 'A'}
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Stats Summary for Mobile */}
+                  {window.innerWidth < 768 && playerGames.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex justify-around text-center">
+                        <div>
+                          <div className="text-green-600 font-bold text-lg">
+                            {playerGames.filter(g => g.result === 'W').length}
+                          </div>
+                          <div className="text-gray-500 text-xs">Wins</div>
+                        </div>
+                        <div>
+                          <div className="text-red-600 font-bold text-lg">
+                            {playerGames.filter(g => g.result === 'L').length}
+                          </div>
+                          <div className="text-gray-500 text-xs">Losses</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-600 font-bold text-lg">
+                            {playerGames.filter(g => g.result === 'T').length}
+                          </div>
+                          <div className="text-gray-500 text-xs">Ties</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <p className="text-center text-gray-600">No games found</p>
+                <div className="text-center py-8">
+                  <p className="text-gray-600" style={{ fontSize: window.innerWidth < 768 ? '14px' : '16px' }}>
+                    No recent games found
+                  </p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    This player may not have played recently
+                  </p>
+                </div>
               )}
             </div>
           </div>
