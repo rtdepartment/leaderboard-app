@@ -13,7 +13,7 @@ export default function LeaderboardPage() {
   const [playerGames, setPlayerGames] = useState([])
   const [loadingGames, setLoadingGames] = useState(false)
 
-  // Add CSS animations for power ratings
+  // Add CSS animations and mobile styles
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -91,9 +91,9 @@ export default function LeaderboardPage() {
           position: sticky;
           left: 25px;
           z-index: 11;
-          width: 65px;
-          min-width: 65px;
-          max-width: 65px;
+          width: 80px;
+          min-width: 80px;
+          max-width: 80px;
           border-right: 1px solid #e5e7eb;
         }
 
@@ -125,7 +125,8 @@ export default function LeaderboardPage() {
         }
 
         /* Hover states */
-        tbody tr:hover td.sticky-col {
+        tbody tr:hover td.sticky-col,
+        tbody tr:hover td.sticky-col-player {
           background-color: #f3f4f6 !important;
         }
         
@@ -151,22 +152,52 @@ export default function LeaderboardPage() {
         }
 
         .player-name {
-          max-width: 50px;
+          max-width: 60px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
           font-size: 10px;
           display: inline-block;
+          cursor: pointer;
+        }
+
+        .player-name:active {
+          color: #2563eb;
         }
 
         .country-flag {
-          font-size: 12px;
+          font-size: 14px;
         }
 
         /* Make Win% text darker on mobile */
         .win-pct-mobile {
           color: #1f2937 !important;
           font-weight: 600 !important;
+        }
+
+        /* Mobile tooltips */
+        .mobile-tooltip {
+          position: fixed;
+          background: rgba(31, 41, 55, 0.95);
+          color: white;
+          padding: 8px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          z-index: 9999;
+          pointer-events: none;
+          max-width: 200px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .mobile-tooltip-title {
+          color: #60a5fa;
+          font-weight: 600;
+          margin-bottom: 2px;
+        }
+
+        .mobile-tooltip-desc {
+          color: #e5e7eb;
+          font-size: 10px;
         }
       }
 
@@ -182,29 +213,84 @@ export default function LeaderboardPage() {
         }
 
         .player-name {
-          max-width: 45px;
+          max-width: 55px;
           font-size: 9px;
         }
 
         .sticky-col-player {
-          width: 60px;
-          min-width: 60px;
-          max-width: 60px;
-          left: 20px;
+          width: 75px;
+          min-width: 75px;
+          max-width: 75px;
         }
+      }
 
-        .sticky-col {
-          width: 20px;
-          min-width: 20px;
-          max-width: 20px;
-        }
+      /* Player modal styles */
+      .player-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 9999;
+      }
+
+      .player-modal-content {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        width: 100%;
+        max-height: 70vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
 
-  // Keep all your existing functions...
+  // Tooltip definitions
+  const tooltips = {
+    GP: {
+      title: 'Games Played',
+      description: 'Total number of games participated in'
+    },
+    GD: {
+      title: 'Goal Differential',
+      description: 'Total goals scored minus goals conceded'
+    },
+    OFF: {
+      title: 'Offensive Rating',
+      description: 'Average goals scored per game'
+    },
+    DEF: {
+      title: 'Defensive Rating',
+      description: 'Average goals conceded per game'
+    },
+    NET: {
+      title: 'Net Rating',
+      description: 'Average goal differential per game'
+    },
+    STREAK: {
+      title: 'Current Streak',
+      description: 'Consecutive wins (W) or losses (L)'
+    },
+    POWER: {
+      title: 'Power Rating',
+      description: 'Overall performance score (0-100)'
+    },
+    LAST: {
+      title: 'Last Played',
+      description: 'Date of most recent game'
+    }
+  }
+
   // Country flag helper function
   const getCountryFlag = (countryCode) => {
     const flags = {
@@ -329,16 +415,98 @@ export default function LeaderboardPage() {
     return '-'
   }
 
+  // Fetch player's last 5 games
   const fetchPlayerGames = async (playerId, playerName) => {
     setSelectedPlayer({ id: playerId, name: playerName })
     setLoadingGames(true)
-    // Fetch player games logic here
+    
+    try {
+      // Get player's game participations
+      const { data: gameData, error: gameError } = await supabase
+        .from('game_players')
+        .select('game_id, team')
+        .eq('player_id', playerId)
+        .order('game_id', { ascending: false })
+        .limit(5)
+
+      if (gameError) throw gameError
+
+      if (gameData && gameData.length > 0) {
+        // Get game details
+        const { data: games, error: gamesError } = await supabase
+          .from('games')
+          .select('*')
+          .in('id', gameData.map(g => g.game_id))
+          .order('date', { ascending: false })
+
+        if (gamesError) throw gamesError
+
+        // Format games with player's team info
+        const formattedGames = games.map(game => {
+          const playerGame = gameData.find(g => g.game_id === game.id)
+          const playerTeam = playerGame.team
+          const opponentTeam = playerTeam === 1 ? 2 : 1
+          const playerScore = playerTeam === 1 ? game.team1_score : game.team2_score
+          const opponentScore = playerTeam === 1 ? game.team2_score : game.team1_score
+          
+          let result = 'T'
+          if (playerScore > opponentScore) result = 'W'
+          else if (playerScore < opponentScore) result = 'L'
+          
+          return {
+            ...game,
+            playerTeam,
+            playerScore,
+            opponentScore,
+            result
+          }
+        })
+        
+        setPlayerGames(formattedGames)
+      }
+    } catch (error) {
+      console.error('Error fetching player games:', error)
+    }
+    
     setLoadingGames(false)
   }
 
   const closePlayerModal = () => {
     setSelectedPlayer(null)
     setPlayerGames([])
+  }
+
+  // Mobile tooltip handler
+  const handleMobileTooltip = (e, tooltip) => {
+    if (window.innerWidth > 768) return // Only for mobile
+    
+    const existingTooltip = document.querySelector('.mobile-tooltip')
+    if (existingTooltip) existingTooltip.remove()
+    
+    if (activeTooltip === tooltip) {
+      setActiveTooltip(null)
+      return
+    }
+    
+    const tooltipDiv = document.createElement('div')
+    tooltipDiv.className = 'mobile-tooltip'
+    tooltipDiv.innerHTML = `
+      <div class="mobile-tooltip-title">${tooltips[tooltip].title}</div>
+      <div class="mobile-tooltip-desc">${tooltips[tooltip].description}</div>
+    `
+    
+    document.body.appendChild(tooltipDiv)
+    
+    const rect = e.target.getBoundingClientRect()
+    tooltipDiv.style.left = Math.min(rect.left, window.innerWidth - 210) + 'px'
+    tooltipDiv.style.top = (rect.top - tooltipDiv.offsetHeight - 5) + 'px'
+    
+    setActiveTooltip(tooltip)
+    
+    setTimeout(() => {
+      tooltipDiv.remove()
+      setActiveTooltip(null)
+    }, 3000)
   }
 
   // Sorting logic
@@ -417,7 +585,7 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        {/* Table Container with horizontal scroll on mobile */}
+        {/* Table Container */}
         <div className="bg-white shadow-lg rounded-lg overflow-hidden mx-2 sm:mx-0">
           <div className="table-container">
             <table className="w-full leaderboard-table">
@@ -430,7 +598,8 @@ export default function LeaderboardPage() {
                       onClick={() => setSortBy(sortBy === 'name' ? 'default' : 'name')}>
                     Player {sortBy === 'name' && '▼'}
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider"
+                      onClick={(e) => handleMobileTooltip(e, 'GP')}>
                     GP
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
@@ -445,22 +614,28 @@ export default function LeaderboardPage() {
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     Win%
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider"
+                      onClick={(e) => handleMobileTooltip(e, 'GD')}>
                     GD
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider"
+                      onClick={(e) => handleMobileTooltip(e, 'OFF')}>
                     OFF
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider"
+                      onClick={(e) => handleMobileTooltip(e, 'DEF')}>
                     DEF
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider"
+                      onClick={(e) => handleMobileTooltip(e, 'NET')}>
                     NET
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider"
+                      onClick={(e) => handleMobileTooltip(e, 'STREAK')}>
                     STRK
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider"
+                      onClick={(e) => handleMobileTooltip(e, 'POWER')}>
                     <span style={{ 
                       background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
                       WebkitBackgroundClip: 'text',
@@ -470,7 +645,8 @@ export default function LeaderboardPage() {
                       PWR
                     </span>
                   </th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider"
+                      onClick={(e) => handleMobileTooltip(e, 'LAST')}>
                     LAST
                   </th>
                 </tr>
@@ -511,11 +687,15 @@ export default function LeaderboardPage() {
                       
                       <td className={`sticky-col-player px-1 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm ${bgClass}`}
                           style={{ backgroundColor: bgColor }}>
-                        <div className="flex items-center gap-1" style={{ maxWidth: '65px' }}>
+                        <div className="flex items-center gap-1" style={{ maxWidth: '80px' }}>
                           {player.country && (
                             <span className="country-flag flex-shrink-0">{getCountryFlag(player.country)}</span>
                           )}
-                          <span className="player-name font-medium text-gray-900 capitalize">
+                          <span 
+                            className="player-name font-medium text-gray-900 capitalize"
+                            onClick={() => fetchPlayerGames(player.player_id, player.name)}
+                            style={{ cursor: 'pointer' }}
+                          >
                             {player.name}
                           </span>
                         </div>
@@ -632,9 +812,80 @@ export default function LeaderboardPage() {
 
         {/* Mobile scroll indicator */}
         <div className="sm:hidden mt-2 text-center text-xs text-gray-500">
-          ← Swipe to see more →
+          ← Swipe to see more | Tap headers for info | Tap player to see games →
         </div>
       </div>
+
+      {/* Player Modal */}
+      {selectedPlayer && (
+        <div className="player-modal" onClick={closePlayerModal}>
+          <div className="player-modal-content" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div style={{
+              backgroundColor: '#f3f4f6',
+              padding: '16px 24px',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <h2 className="text-lg font-semibold text-gray-900 capitalize">
+                {selectedPlayer.name}'s Last 5 Games
+              </h2>
+              <button 
+                onClick={closePlayerModal}
+                className="text-gray-400 hover:text-gray-600"
+                style={{ fontSize: '24px', lineHeight: '1' }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px', overflowY: 'auto' }}>
+              {loadingGames ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                </div>
+              ) : playerGames.length > 0 ? (
+                <div className="space-y-3">
+                  {playerGames.map((game, idx) => (
+                    <div key={game.id} className="border rounded-lg p-3 bg-gray-50">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm text-gray-600">
+                          {new Date(game.date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        <span className={`
+                          px-2 py-1 rounded text-xs font-bold
+                          ${game.result === 'W' ? 'bg-green-100 text-green-800' : 
+                            game.result === 'L' ? 'bg-red-100 text-red-800' : 
+                            'bg-gray-100 text-gray-800'}
+                        `}>
+                          {game.result}
+                        </span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-2xl font-bold">
+                          {game.playerScore} - {game.opponentScore}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 text-center mt-1">
+                        Team {game.playerTeam} vs Team {game.playerTeam === 1 ? 2 : 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-600">No games found</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
