@@ -13,7 +13,6 @@ export default function LeaderboardPage() {
   const [playerGames, setPlayerGames] = useState([])
   const [loadingGames, setLoadingGames] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
 
   // Check if mobile on mount and window resize
   useEffect(() => {
