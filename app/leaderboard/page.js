@@ -63,7 +63,7 @@ export default function LeaderboardPage() {
         left: 50%;
         transform: translateX(-50%);
         background-color: #1f2937;
-        color: white;
+        color: white !important;
         padding: 8px 12px;
         border-radius: 6px;
         font-size: 12px;
@@ -71,10 +71,16 @@ export default function LeaderboardPage() {
         z-index: 9999;
         margin-bottom: 8px;
         pointer-events: none;
+        min-width: 120px;
+        text-align: left;
       }
       
       .tooltip-wrapper:hover .tooltip-content {
         display: block;
+      }
+      
+      .tooltip-content > div {
+        color: white !important;
       }
       
       .tooltip-arrow {
@@ -327,8 +333,8 @@ export default function LeaderboardPage() {
       <span className="tooltip-wrapper">
         {children}
         <span className="tooltip-content">
-          <div style={{ fontWeight: '600', marginBottom: '2px' }}>{title}</div>
-          <div style={{ fontSize: '11px', opacity: 0.9 }}>{description}</div>
+          <div style={{ fontWeight: '600', marginBottom: '2px', color: 'white' }}>{title || 'No title'}</div>
+          <div style={{ fontSize: '11px', color: '#e5e7eb' }}>{description || 'No description'}</div>
           <span className="tooltip-arrow"></span>
         </span>
       </span>
@@ -748,7 +754,7 @@ export default function LeaderboardPage() {
                       onClick={(e) => handleMobileTooltip(e, 'GP')}
                       onMouseEnter={() => handleDesktopTooltipEnter('GP')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    <TooltipWrapper title={tooltips.GP?.title} description={tooltips.GP?.description}>
+                    <TooltipWrapper title="Games Played" description="Total number of games participated in">
                       GP
                     </TooltipWrapper>
                     <Tooltip 
@@ -773,7 +779,7 @@ export default function LeaderboardPage() {
                       onClick={(e) => handleMobileTooltip(e, 'GD')}
                       onMouseEnter={() => handleDesktopTooltipEnter('GD')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    <TooltipWrapper title={tooltips.GD?.title} description={tooltips.GD?.description}>
+                    <TooltipWrapper title="Goal Differential" description="Total goals scored minus goals conceded">
                       GD
                     </TooltipWrapper>
                   </th>
@@ -781,7 +787,9 @@ export default function LeaderboardPage() {
                       onClick={(e) => handleMobileTooltip(e, 'OFF')}
                       onMouseEnter={() => handleDesktopTooltipEnter('OFF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    OFF
+                    <TooltipWrapper title="Offensive Rating" description="Average goals scored per game">
+                      OFF
+                    </TooltipWrapper>
                     <Tooltip 
                       show={activeTooltip === 'OFF'} 
                       title={tooltips.OFF?.title} 
@@ -792,7 +800,9 @@ export default function LeaderboardPage() {
                       onClick={(e) => handleMobileTooltip(e, 'DEF')}
                       onMouseEnter={() => handleDesktopTooltipEnter('DEF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    DEF
+                    <TooltipWrapper title="Defensive Rating" description="Average goals conceded per game">
+                      DEF
+                    </TooltipWrapper>
                     <Tooltip 
                       show={activeTooltip === 'DEF'} 
                       title={tooltips.DEF?.title} 
@@ -803,7 +813,9 @@ export default function LeaderboardPage() {
                       onClick={(e) => handleMobileTooltip(e, 'NET')}
                       onMouseEnter={() => handleDesktopTooltipEnter('NET')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    NET
+                    <TooltipWrapper title="Net Rating" description="Average goal differential per game">
+                      NET
+                    </TooltipWrapper>
                     <Tooltip 
                       show={activeTooltip === 'NET'} 
                       title={tooltips.NET?.title} 
