@@ -282,6 +282,47 @@ export default function LeaderboardPage() {
     return () => document.head.removeChild(style);
   }, []);
 
+  // Tooltip component
+  const Tooltip = ({ show, title, description }) => {
+    if (!show) return null
+    
+    return (
+      <div 
+        style={{
+          position: 'absolute',
+          bottom: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          marginBottom: '8px',
+          padding: '8px 12px',
+          backgroundColor: '#1f2937',
+          color: 'white',
+          fontSize: '12px',
+          borderRadius: '8px',
+          whiteSpace: 'nowrap',
+          zIndex: 9999,
+          pointerEvents: 'none',
+          display: 'block',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+        }}
+      >
+        <div style={{ fontWeight: '600', marginBottom: '2px' }}>{title}</div>
+        <div style={{ color: '#d1d5db', fontSize: '11px' }}>{description}</div>
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 0,
+          height: 0,
+          borderLeft: '4px solid transparent',
+          borderRight: '4px solid transparent',
+          borderTop: '4px solid #1f2937'
+        }}></div>
+      </div>
+    )
+  }
+
   // Tooltip definitions
   const tooltips = {
     GP: {
@@ -389,6 +430,7 @@ export default function LeaderboardPage() {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
 
   const fetchStats = async () => {
     setLoading(true)
@@ -561,13 +603,11 @@ export default function LeaderboardPage() {
 
   // Desktop tooltip handler (hover)
   const handleDesktopTooltipEnter = (tooltip) => {
-    console.log('Hover enter:', tooltip, 'isMobile:', isMobile)
     // Always set tooltip on desktop hover, let CSS handle mobile
     setActiveTooltip(tooltip)
   }
 
   const handleDesktopTooltipLeave = () => {
-    console.log('Hover leave')
     setActiveTooltip(null)
   }
 
@@ -652,14 +692,11 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('GP')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     GP
-                    {/* Desktop Tooltip */}
-                    {activeTooltip === 'GP' && (
-                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                        <div className="font-semibold">{tooltips.GP.title}</div>
-                        <div className="text-gray-300 text-xs">{tooltips.GP.description}</div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    )}
+                    <Tooltip 
+                      show={activeTooltip === 'GP'} 
+                      title={tooltips.GP?.title} 
+                      description={tooltips.GP?.description} 
+                    />
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     W
@@ -678,65 +715,55 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('GD')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     GD
-                    {activeTooltip === 'GD' && (
-                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                        <div className="font-semibold">{tooltips.GD.title}</div>
-                        <div className="text-gray-300 text-xs">{tooltips.GD.description}</div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    )}
+                    <Tooltip 
+                      show={activeTooltip === 'GD'} 
+                      title={tooltips.GD?.title} 
+                      description={tooltips.GD?.description} 
+                    />
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'OFF')}
                       onMouseEnter={() => handleDesktopTooltipEnter('OFF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     OFF
-                    {activeTooltip === 'OFF' && (
-                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                        <div className="font-semibold">{tooltips.OFF.title}</div>
-                        <div className="text-gray-300 text-xs">{tooltips.OFF.description}</div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    )}
+                    <Tooltip 
+                      show={activeTooltip === 'OFF'} 
+                      title={tooltips.OFF?.title} 
+                      description={tooltips.OFF?.description} 
+                    />
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'DEF')}
                       onMouseEnter={() => handleDesktopTooltipEnter('DEF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     DEF
-                    {activeTooltip === 'DEF' && (
-                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                        <div className="font-semibold">{tooltips.DEF.title}</div>
-                        <div className="text-gray-300 text-xs">{tooltips.DEF.description}</div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    )}
+                    <Tooltip 
+                      show={activeTooltip === 'DEF'} 
+                      title={tooltips.DEF?.title} 
+                      description={tooltips.DEF?.description} 
+                    />
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'NET')}
                       onMouseEnter={() => handleDesktopTooltipEnter('NET')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     NET
-                    {activeTooltip === 'NET' && (
-                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                        <div className="font-semibold">{tooltips.NET.title}</div>
-                        <div className="text-gray-300 text-xs">{tooltips.NET.description}</div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    )}
+                    <Tooltip 
+                      show={activeTooltip === 'NET'} 
+                      title={tooltips.NET?.title} 
+                      description={tooltips.NET?.description} 
+                    />
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'STREAK')}
                       onMouseEnter={() => handleDesktopTooltipEnter('STREAK')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     STRK
-                    {activeTooltip === 'STREAK' && (
-                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                        <div className="font-semibold">{tooltips.STREAK.title}</div>
-                        <div className="text-gray-300 text-xs">{tooltips.STREAK.description}</div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    )}
+                    <Tooltip 
+                      show={activeTooltip === 'STREAK'} 
+                      title={tooltips.STREAK?.title} 
+                      description={tooltips.STREAK?.description} 
+                    />
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'POWER')}
@@ -750,26 +777,22 @@ export default function LeaderboardPage() {
                     }}>
                       PWR
                     </span>
-                    {activeTooltip === 'POWER' && (
-                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg z-50" style={{ width: '200px' }}>
-                        <div className="font-semibold">{tooltips.POWER.title}</div>
-                        <div className="text-gray-300 text-xs">{tooltips.POWER.description}</div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    )}
+                    <Tooltip 
+                      show={activeTooltip === 'POWER'} 
+                      title={tooltips.POWER?.title} 
+                      description={tooltips.POWER?.description} 
+                    />
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'LAST')}
                       onMouseEnter={() => handleDesktopTooltipEnter('LAST')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     LAST
-                    {activeTooltip === 'LAST' && (
-                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                        <div className="font-semibold">{tooltips.LAST.title}</div>
-                        <div className="text-gray-300 text-xs">{tooltips.LAST.description}</div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    )}
+                    <Tooltip 
+                      show={activeTooltip === 'LAST'} 
+                      title={tooltips.LAST?.title} 
+                      description={tooltips.LAST?.description} 
+                    />
                   </th>
                 </tr>
               </thead>
