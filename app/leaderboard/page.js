@@ -50,6 +50,59 @@ export default function LeaderboardPage() {
         }
       }
 
+      /* New approach: Data attribute tooltips */
+      [data-tooltip] {
+        position: relative;
+        cursor: help;
+      }
+      
+      [data-tooltip]::before,
+      [data-tooltip]::after {
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+      
+      [data-tooltip]::before {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        min-width: 120px;
+        max-width: 200px;
+        background: #1f2937;
+        color: white;
+        font-size: 12px;
+        font-weight: normal;
+        text-transform: none;
+        border-radius: 6px;
+        white-space: normal;
+        z-index: 10000;
+        line-height: 1.4;
+      }
+      
+      [data-tooltip]::after {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-bottom: 4px;
+        border: 6px solid transparent;
+        border-top-color: #1f2937;
+        z-index: 10001;
+      }
+      
+      [data-tooltip]:hover::before,
+      [data-tooltip]:hover::after {
+        visibility: visible;
+        opacity: 1;
+      }
+
       /* Pure CSS Tooltips for desktop */
       .tooltip-wrapper {
         position: relative;
@@ -709,10 +762,6 @@ export default function LeaderboardPage() {
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 px-2">
             Strikers Leaderboard
           </h1>
-          {/* Debug: Show active tooltip */}
-          <div className="text-xs text-gray-500 px-2">
-            Active tooltip: {activeTooltip || 'none'}
-          </div>
         </div>
 
         {/* Filters */}
@@ -751,17 +800,11 @@ export default function LeaderboardPage() {
                     Player {sortBy === 'name' && '▼'}
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
+                      data-tooltip="Games Played: Total number of games participated in"
                       onClick={(e) => handleMobileTooltip(e, 'GP')}
                       onMouseEnter={() => handleDesktopTooltipEnter('GP')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    <TooltipWrapper title="Games Played" description="Total number of games participated in">
-                      GP
-                    </TooltipWrapper>
-                    <Tooltip 
-                      show={activeTooltip === 'GP'} 
-                      title={tooltips.GP?.title} 
-                      description={tooltips.GP?.description} 
-                    />
+                    GP
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     W
@@ -776,64 +819,42 @@ export default function LeaderboardPage() {
                     Win%
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
+                      data-tooltip="Goal Differential: Total goals scored minus goals conceded"
                       onClick={(e) => handleMobileTooltip(e, 'GD')}
                       onMouseEnter={() => handleDesktopTooltipEnter('GD')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    <TooltipWrapper title="Goal Differential" description="Total goals scored minus goals conceded">
-                      GD
-                    </TooltipWrapper>
+                    GD
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
+                      data-tooltip="Offensive Rating: Average goals scored per game"
                       onClick={(e) => handleMobileTooltip(e, 'OFF')}
                       onMouseEnter={() => handleDesktopTooltipEnter('OFF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    <TooltipWrapper title="Offensive Rating" description="Average goals scored per game">
-                      OFF
-                    </TooltipWrapper>
-                    <Tooltip 
-                      show={activeTooltip === 'OFF'} 
-                      title={tooltips.OFF?.title} 
-                      description={tooltips.OFF?.description} 
-                    />
+                    OFF
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
+                      data-tooltip="Defensive Rating: Average goals conceded per game"
                       onClick={(e) => handleMobileTooltip(e, 'DEF')}
                       onMouseEnter={() => handleDesktopTooltipEnter('DEF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    <TooltipWrapper title="Defensive Rating" description="Average goals conceded per game">
-                      DEF
-                    </TooltipWrapper>
-                    <Tooltip 
-                      show={activeTooltip === 'DEF'} 
-                      title={tooltips.DEF?.title} 
-                      description={tooltips.DEF?.description} 
-                    />
+                    DEF
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
+                      data-tooltip="Net Rating: Average goal differential per game"
                       onClick={(e) => handleMobileTooltip(e, 'NET')}
                       onMouseEnter={() => handleDesktopTooltipEnter('NET')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    <TooltipWrapper title="Net Rating" description="Average goal differential per game">
-                      NET
-                    </TooltipWrapper>
-                    <Tooltip 
-                      show={activeTooltip === 'NET'} 
-                      title={tooltips.NET?.title} 
-                      description={tooltips.NET?.description} 
-                    />
+                    NET
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
+                      data-tooltip="Current Streak: Consecutive wins (W) or losses (L)"
                       onClick={(e) => handleMobileTooltip(e, 'STREAK')}
                       onMouseEnter={() => handleDesktopTooltipEnter('STREAK')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     STRK
-                    <Tooltip 
-                      show={activeTooltip === 'STREAK'} 
-                      title={tooltips.STREAK?.title} 
-                      description={tooltips.STREAK?.description} 
-                    />
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
+                      data-tooltip="Power Rating: Overall performance score (0-100)"
                       onClick={(e) => handleMobileTooltip(e, 'POWER')}
                       onMouseEnter={() => handleDesktopTooltipEnter('POWER')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
@@ -845,22 +866,13 @@ export default function LeaderboardPage() {
                     }}>
                       PWR
                     </span>
-                    <Tooltip 
-                      show={activeTooltip === 'POWER'} 
-                      title={tooltips.POWER?.title} 
-                      description={tooltips.POWER?.description} 
-                    />
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
+                      data-tooltip="Last Played: Date of most recent game"
                       onClick={(e) => handleMobileTooltip(e, 'LAST')}
                       onMouseEnter={() => handleDesktopTooltipEnter('LAST')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     LAST
-                    <Tooltip 
-                      show={activeTooltip === 'LAST'} 
-                      title={tooltips.LAST?.title} 
-                      description={tooltips.LAST?.description} 
-                    />
                   </th>
                 </tr>
               </thead>
