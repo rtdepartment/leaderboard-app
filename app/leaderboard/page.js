@@ -824,7 +824,7 @@ export default function LeaderboardPage() {
                         {player.ties || 0}
                       </td>
                       
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-medium">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-semibold text-gray-900">
                         {winPct.toFixed(1)}%
                       </td>
                       
