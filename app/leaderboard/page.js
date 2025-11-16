@@ -50,6 +50,45 @@ export default function LeaderboardPage() {
         }
       }
 
+      /* Pure CSS Tooltips for desktop */
+      .tooltip-wrapper {
+        position: relative;
+        cursor: help;
+      }
+      
+      .tooltip-content {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #1f2937;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 9999;
+        margin-bottom: 8px;
+        pointer-events: none;
+      }
+      
+      .tooltip-wrapper:hover .tooltip-content {
+        display: block;
+      }
+      
+      .tooltip-arrow {
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 4px solid #1f2937;
+      }
+
       /* Desktop tooltips - only show on hover for non-touch devices */
       @media (hover: hover) and (pointer: fine) {
         .desktop-tooltip {
@@ -281,6 +320,20 @@ export default function LeaderboardPage() {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
+
+  // CSS Tooltip wrapper (fallback)
+  const TooltipWrapper = ({ children, title, description }) => {
+    return (
+      <span className="tooltip-wrapper">
+        {children}
+        <span className="tooltip-content">
+          <div style={{ fontWeight: '600', marginBottom: '2px' }}>{title}</div>
+          <div style={{ fontSize: '11px', opacity: 0.9 }}>{description}</div>
+          <span className="tooltip-arrow"></span>
+        </span>
+      </span>
+    )
+  }
 
   // Tooltip component
   const Tooltip = ({ show, title, description }) => {
@@ -650,6 +703,10 @@ export default function LeaderboardPage() {
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 px-2">
             Strikers Leaderboard
           </h1>
+          {/* Debug: Show active tooltip */}
+          <div className="text-xs text-gray-500 px-2">
+            Active tooltip: {activeTooltip || 'none'}
+          </div>
         </div>
 
         {/* Filters */}
@@ -691,7 +748,9 @@ export default function LeaderboardPage() {
                       onClick={(e) => handleMobileTooltip(e, 'GP')}
                       onMouseEnter={() => handleDesktopTooltipEnter('GP')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    GP
+                    <TooltipWrapper title={tooltips.GP?.title} description={tooltips.GP?.description}>
+                      GP
+                    </TooltipWrapper>
                     <Tooltip 
                       show={activeTooltip === 'GP'} 
                       title={tooltips.GP?.title} 
@@ -714,12 +773,9 @@ export default function LeaderboardPage() {
                       onClick={(e) => handleMobileTooltip(e, 'GD')}
                       onMouseEnter={() => handleDesktopTooltipEnter('GD')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
-                    GD
-                    <Tooltip 
-                      show={activeTooltip === 'GD'} 
-                      title={tooltips.GD?.title} 
-                      description={tooltips.GD?.description} 
-                    />
+                    <TooltipWrapper title={tooltips.GD?.title} description={tooltips.GD?.description}>
+                      GD
+                    </TooltipWrapper>
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'OFF')}
