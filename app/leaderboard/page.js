@@ -12,6 +12,19 @@ export default function LeaderboardPage() {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [playerGames, setPlayerGames] = useState([])
   const [loadingGames, setLoadingGames] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Check if mobile on mount and window resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Add CSS animations and mobile styles
   useEffect(() => {
@@ -494,7 +507,7 @@ export default function LeaderboardPage() {
 
   // Mobile tooltip handler (tap/click)
   const handleMobileTooltip = (e, tooltip) => {
-    if (window.innerWidth > 768) return // Desktop uses hover tooltips instead
+    if (!isMobile) return // Desktop uses hover tooltips instead
     
     const existingTooltip = document.querySelector('.mobile-tooltip')
     if (existingTooltip) existingTooltip.remove()
@@ -527,12 +540,12 @@ export default function LeaderboardPage() {
 
   // Desktop tooltip handler (hover)
   const handleDesktopTooltipEnter = (tooltip) => {
-    if (window.innerWidth <= 768) return // Mobile uses tap tooltips instead
+    if (isMobile) return // Mobile uses tap tooltips instead
     setActiveTooltip(tooltip)
   }
 
   const handleDesktopTooltipLeave = () => {
-    if (window.innerWidth <= 768) return
+    if (isMobile) return
     setActiveTooltip(null)
   }
 
@@ -618,7 +631,7 @@ export default function LeaderboardPage() {
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     GP
                     {/* Desktop Tooltip */}
-                    {window.innerWidth > 768 && activeTooltip === 'GP' && (
+                    {!isMobile && activeTooltip === 'GP' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.GP.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.GP.description}</div>
@@ -643,7 +656,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('GD')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     GD
-                    {window.innerWidth > 768 && activeTooltip === 'GD' && (
+                    {!isMobile && activeTooltip === 'GD' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.GD.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.GD.description}</div>
@@ -656,7 +669,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('OFF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     OFF
-                    {window.innerWidth > 768 && activeTooltip === 'OFF' && (
+                    {!isMobile && activeTooltip === 'OFF' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.OFF.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.OFF.description}</div>
@@ -669,7 +682,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('DEF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     DEF
-                    {window.innerWidth > 768 && activeTooltip === 'DEF' && (
+                    {!isMobile && activeTooltip === 'DEF' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.DEF.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.DEF.description}</div>
@@ -682,7 +695,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('NET')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     NET
-                    {window.innerWidth > 768 && activeTooltip === 'NET' && (
+                    {!isMobile && activeTooltip === 'NET' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.NET.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.NET.description}</div>
@@ -695,7 +708,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('STREAK')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     STRK
-                    {window.innerWidth > 768 && activeTooltip === 'STREAK' && (
+                    {!isMobile && activeTooltip === 'STREAK' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.STREAK.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.STREAK.description}</div>
@@ -715,7 +728,7 @@ export default function LeaderboardPage() {
                     }}>
                       PWR
                     </span>
-                    {window.innerWidth > 768 && activeTooltip === 'POWER' && (
+                    {!isMobile && activeTooltip === 'POWER' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg z-50" style={{ width: '200px' }}>
                         <div className="font-semibold">{tooltips.POWER.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.POWER.description}</div>
@@ -728,7 +741,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('LAST')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     LAST
-                    {window.innerWidth > 768 && activeTooltip === 'LAST' && (
+                    {!isMobile && activeTooltip === 'LAST' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.LAST.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.LAST.description}</div>
@@ -911,29 +924,29 @@ export default function LeaderboardPage() {
             className="player-modal-content" 
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: window.innerWidth < 768 ? '95%' : '500px',
-              maxHeight: window.innerWidth < 768 ? '80vh' : '70vh',
-              margin: window.innerWidth < 768 ? '10px' : '20px'
+              maxWidth: isMobile ? '95%' : '500px',
+              maxHeight: isMobile ? '80vh' : '70vh',
+              margin: isMobile ? '10px' : '20px'
             }}
           >
             {/* Modal Header */}
             <div style={{
               backgroundColor: '#f3f4f6',
-              padding: window.innerWidth < 768 ? '12px 16px' : '16px 24px',
+              padding: isMobile ? '12px 16px' : '16px 24px',
               borderBottom: '1px solid #e5e7eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
               <h2 className="font-semibold text-gray-900 capitalize" 
-                  style={{ fontSize: window.innerWidth < 768 ? '16px' : '18px' }}>
+                  style={{ fontSize: isMobile ? '16px' : '18px' }}>
                 {selectedPlayer.name}'s Last 5 Games
               </h2>
               <button 
                 onClick={closePlayerModal}
                 className="text-gray-400 hover:text-gray-600"
                 style={{ 
-                  fontSize: window.innerWidth < 768 ? '28px' : '24px', 
+                  fontSize: isMobile ? '28px' : '24px', 
                   lineHeight: '1',
                   padding: '4px',
                   marginRight: '-4px'
@@ -945,7 +958,7 @@ export default function LeaderboardPage() {
 
             {/* Modal Body */}
             <div style={{ 
-              padding: window.innerWidth < 768 ? '12px' : '20px', 
+              padding: isMobile ? '12px' : '20px', 
               overflowY: 'auto',
               maxHeight: 'calc(100% - 60px)'
             }}>
@@ -958,10 +971,10 @@ export default function LeaderboardPage() {
                 <div className="space-y-2 sm:space-y-3">
                   {playerGames.map((game, idx) => (
                     <div key={game.id} className="border rounded-lg bg-gray-50" 
-                         style={{ padding: window.innerWidth < 768 ? '10px' : '12px' }}>
+                         style={{ padding: isMobile ? '10px' : '12px' }}>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-gray-600" 
-                              style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px' }}>
+                              style={{ fontSize: isMobile ? '12px' : '14px' }}>
                           {new Date(game.date).toLocaleDateString('en-US', {
                             weekday: 'short',
                             month: 'short',
@@ -973,18 +986,18 @@ export default function LeaderboardPage() {
                           ${game.result === 'W' ? 'bg-green-100 text-green-800' : 
                             game.result === 'L' ? 'bg-red-100 text-red-800' : 
                             'bg-gray-100 text-gray-800'}
-                        `} style={{ fontSize: window.innerWidth < 768 ? '11px' : '12px' }}>
+                        `} style={{ fontSize: isMobile ? '11px' : '12px' }}>
                           {game.result === 'W' ? 'WIN' : game.result === 'L' ? 'LOSS' : 'TIE'}
                         </span>
                       </div>
                       <div className="text-center">
                         <span className="font-bold text-gray-900" 
-                              style={{ fontSize: window.innerWidth < 768 ? '20px' : '24px' }}>
+                              style={{ fontSize: isMobile ? '20px' : '24px' }}>
                           {game.playerScore} - {game.opponentScore}
                         </span>
                       </div>
                       <div className="text-center mt-1"
-                           style={{ fontSize: window.innerWidth < 768 ? '11px' : '12px' }}>
+                           style={{ fontSize: isMobile ? '11px' : '12px' }}>
                         <span style={{
                           ...getTeamStyle(game.playerTeam),
                           backgroundColor: game.playerTeam === 'A' ? '#f3f4f6' : '#ffffff',
@@ -1003,7 +1016,7 @@ export default function LeaderboardPage() {
                   ))}
                   
                   {/* Stats Summary for Mobile */}
-                  {window.innerWidth < 768 && playerGames.length > 0 && (
+                  {isMobile && playerGames.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <div className="flex justify-around text-center">
                         <div>
