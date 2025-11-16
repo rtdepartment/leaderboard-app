@@ -8,9 +8,46 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('default')
   const [minGames, setMinGames] = useState(5)
+  const [activeTooltip, setActiveTooltip] = useState(null)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [playerGames, setPlayerGames] = useState([])
   const [loadingGames, setLoadingGames] = useState(false)
+
+  // Tooltip definitions - EXACT from original
+  const tooltips = {
+    GP: {
+      title: "GAMES PLAYED",
+      description: "Total number of games the player has participated in"
+    },
+    GD: {
+      title: "GOAL DIFFERENCE",
+      description: "Total goals scored minus goals conceded"
+    },
+    OFF: {
+      title: "OFFENSIVE RATING", 
+      description: "Average goals your team scores per game when you're playing."
+    },
+    DEF: {
+      title: "DEFENSIVE RATING",
+      description: "Average goals your team allows per game when you're playing."
+    },
+    NET: {
+      title: "NET RATING",
+      description: "Goal differential per game (OFF - DEF). Positive means teams with you outscore opponents on average."
+    },
+    STREAK: {
+      title: "CURRENT STREAK",
+      description: "Current winning (W) or losing (L) streak. Shows consecutive results of the same type."
+    },
+    POWER: {
+      title: "POWER RATING",
+      description: "Comprehensive player strength metric (0-100)"
+    },
+    LAST: {
+      title: "LAST PLAYED",
+      description: "Date of the player's most recent game"
+    }
+  }
 
   // Helper function to get team name
   const getTeamName = (team) => {
@@ -37,6 +74,51 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchStats()
+  }, [])
+
+  // Mobile tooltip CSS injection
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = `
+      .mobile-tooltip {
+        position: fixed;
+        background-color: rgba(31, 41, 55, 0.95);
+        color: white;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        white-space: normal;
+        z-index: 9999;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        width: 200px;
+        text-align: center;
+        line-height: 1.5;
+        animation: fadeIn 0.2s;
+      }
+      
+      .mobile-tooltip-title {
+        color: #60a5fa;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      
+      .mobile-tooltip-desc {
+        color: #e5e7eb;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @media (min-width: 768px) {
+        .mobile-tooltip {
+          display: none !important;
+        }
+      }
+    `
+    document.head.appendChild(style)
+    return () => document.head.removeChild(style)
   }, [])
 
   const fetchStats = async () => {
@@ -83,6 +165,59 @@ export default function LeaderboardPage() {
     
     const totalPower = winComponent + netRatingComponent + experienceComponent
     return Math.min(100, Math.round(totalPower * 10) / 10)
+  }
+
+  // Mobile tooltip handler
+  const handleMobileTooltip = (e, tooltipKey) => {
+    // Only on mobile/touch devices
+    if (window.innerWidth > 768) return
+    
+    // Remove any existing tooltip
+    const existingTooltip = document.querySelector('.mobile-tooltip')
+    if (existingTooltip) existingTooltip.remove()
+    
+    // If clicking same tooltip, just close it
+    if (activeTooltip === tooltipKey) {
+      setActiveTooltip(null)
+      return
+    }
+    
+    // Create new tooltip
+    const tooltip = tooltips[tooltipKey]
+    if (!tooltip) return
+    
+    const tooltipDiv = document.createElement('div')
+    tooltipDiv.className = 'mobile-tooltip'
+    tooltipDiv.innerHTML = `
+      <div class="mobile-tooltip-title">${tooltip.title}</div>
+      <div class="mobile-tooltip-desc">${tooltip.description}</div>
+    `
+    
+    document.body.appendChild(tooltipDiv)
+    
+    // Position tooltip
+    const rect = e.target.getBoundingClientRect()
+    const tooltipHeight = 80 // Approximate height
+    const viewportHeight = window.innerHeight
+    
+    // Position above or below based on space
+    if (rect.top > tooltipHeight + 10) {
+      // Position above
+      tooltipDiv.style.left = Math.min(Math.max(10, rect.left + rect.width/2 - 100), window.innerWidth - 210) + 'px'
+      tooltipDiv.style.top = (rect.top - tooltipHeight - 5) + 'px'
+    } else {
+      // Position below
+      tooltipDiv.style.left = Math.min(Math.max(10, rect.left + rect.width/2 - 100), window.innerWidth - 210) + 'px'
+      tooltipDiv.style.top = (rect.bottom + 5) + 'px'
+    }
+    
+    setActiveTooltip(tooltipKey)
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+      tooltipDiv.remove()
+      setActiveTooltip(null)
+    }, 3000)
   }
 
   // Fetch player's last 5 games
@@ -171,54 +306,6 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Add simple CSS for tooltips */}
-      <style jsx>{`
-        .has-tooltip {
-          position: relative;
-          cursor: help;
-        }
-        
-        .has-tooltip .tooltip {
-          visibility: hidden;
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #1f2937;
-          color: white;
-          padding: 8px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          white-space: nowrap;
-          z-index: 1000;
-          margin-bottom: 8px;
-          font-weight: normal;
-          text-transform: none;
-          max-width: 200px;
-          text-align: center;
-        }
-        
-        .has-tooltip:hover .tooltip {
-          visibility: visible;
-        }
-        
-        .has-tooltip .tooltip::after {
-          content: '';
-          position: absolute;
-          top: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 6px solid transparent;
-          border-top-color: #1f2937;
-        }
-
-        @media (max-width: 768px) {
-          .has-tooltip .tooltip {
-            display: none;
-          }
-        }
-      `}</style>
-
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Header */}
         <div className="mb-4 sm:mb-6">
@@ -258,9 +345,59 @@ export default function LeaderboardPage() {
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium uppercase tracking-wider">#</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium uppercase tracking-wider">Player</th>
                   
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider has-tooltip">
+                  {/* GP with working tooltip */}
+                  <th 
+                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
+                    onMouseEnter={() => setActiveTooltip('GP')}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    onClick={(e) => handleMobileTooltip(e, 'GP')}
+                  >
                     GP
-                    <span className="tooltip">Games Played: Total number of games</span>
+                    {activeTooltip === 'GP' && (
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          bottom: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          backgroundColor: 'rgba(31, 41, 55, 0.95)',
+                          color: 'white',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          whiteSpace: 'normal',
+                          zIndex: 50,
+                          marginBottom: '8px',
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                          width: '220px',
+                          textAlign: 'center',
+                          lineHeight: '1.5',
+                          fontWeight: 'normal',
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
+                          {tooltips.GP.title}
+                        </div>
+                        <div style={{ color: '#e5e7eb' }}>
+                          {tooltips.GP.description}
+                        </div>
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: 0,
+                            height: 0,
+                            borderLeft: '6px solid transparent',
+                            borderRight: '6px solid transparent',
+                            borderTop: '6px solid rgba(31, 41, 55, 0.95)',
+                            marginTop: '-1px'
+                          }}
+                        />
+                      </div>
+                    )}
                   </th>
                   
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">W</th>
@@ -268,44 +405,365 @@ export default function LeaderboardPage() {
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">T</th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">Win%</th>
                   
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider has-tooltip">
+                  {/* GD with tooltip */}
+                  <th 
+                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
+                    onMouseEnter={() => setActiveTooltip('GD')}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    onClick={(e) => handleMobileTooltip(e, 'GD')}
+                  >
                     GD
-                    <span className="tooltip">Goal Differential: Total goals scored minus conceded</span>
+                    {activeTooltip === 'GD' && (
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          bottom: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          backgroundColor: 'rgba(31, 41, 55, 0.95)',
+                          color: 'white',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          whiteSpace: 'normal',
+                          zIndex: 50,
+                          marginBottom: '8px',
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                          width: '220px',
+                          textAlign: 'center',
+                          lineHeight: '1.5',
+                          fontWeight: 'normal',
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
+                          {tooltips.GD.title}
+                        </div>
+                        <div style={{ color: '#e5e7eb' }}>
+                          {tooltips.GD.description}
+                        </div>
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: 0,
+                            height: 0,
+                            borderLeft: '6px solid transparent',
+                            borderRight: '6px solid transparent',
+                            borderTop: '6px solid rgba(31, 41, 55, 0.95)',
+                            marginTop: '-1px'
+                          }}
+                        />
+                      </div>
+                    )}
                   </th>
                   
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider has-tooltip">
+                  {/* Continue with other columns... */}
+                  <th 
+                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
+                    onMouseEnter={() => setActiveTooltip('OFF')}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    onClick={(e) => handleMobileTooltip(e, 'OFF')}
+                  >
                     OFF
-                    <span className="tooltip">Offensive Rating: Avg goals scored per game</span>
+                    {activeTooltip === 'OFF' && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
+                        color: 'white',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        whiteSpace: 'normal',
+                        zIndex: 50,
+                        marginBottom: '8px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                        width: '220px',
+                        textAlign: 'center',
+                        lineHeight: '1.5',
+                        fontWeight: 'normal',
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
+                          {tooltips.OFF.title}
+                        </div>
+                        <div style={{ color: '#e5e7eb' }}>
+                          {tooltips.OFF.description}
+                        </div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '6px solid transparent',
+                          borderRight: '6px solid transparent',
+                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
+                          marginTop: '-1px'
+                        }} />
+                      </div>
+                    )}
                   </th>
                   
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider has-tooltip">
+                  <th 
+                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
+                    onMouseEnter={() => setActiveTooltip('DEF')}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    onClick={(e) => handleMobileTooltip(e, 'DEF')}
+                  >
                     DEF
-                    <span className="tooltip">Defensive Rating: Avg goals conceded per game</span>
+                    {activeTooltip === 'DEF' && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
+                        color: 'white',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        whiteSpace: 'normal',
+                        zIndex: 50,
+                        marginBottom: '8px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                        width: '220px',
+                        textAlign: 'center',
+                        lineHeight: '1.5',
+                        fontWeight: 'normal',
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
+                          {tooltips.DEF.title}
+                        </div>
+                        <div style={{ color: '#e5e7eb' }}>
+                          {tooltips.DEF.description}
+                        </div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '6px solid transparent',
+                          borderRight: '6px solid transparent',
+                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
+                          marginTop: '-1px'
+                        }} />
+                      </div>
+                    )}
                   </th>
                   
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider has-tooltip">
+                  <th 
+                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
+                    onMouseEnter={() => setActiveTooltip('NET')}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    onClick={(e) => handleMobileTooltip(e, 'NET')}
+                  >
                     NET
-                    <span className="tooltip">Net Rating: Avg goal differential per game</span>
+                    {activeTooltip === 'NET' && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
+                        color: 'white',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        whiteSpace: 'normal',
+                        zIndex: 50,
+                        marginBottom: '8px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                        width: '220px',
+                        textAlign: 'center',
+                        lineHeight: '1.5',
+                        fontWeight: 'normal',
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
+                          {tooltips.NET.title}
+                        </div>
+                        <div style={{ color: '#e5e7eb' }}>
+                          {tooltips.NET.description}
+                        </div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '6px solid transparent',
+                          borderRight: '6px solid transparent',
+                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
+                          marginTop: '-1px'
+                        }} />
+                      </div>
+                    )}
                   </th>
                   
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider has-tooltip">
+                  <th 
+                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
+                    onMouseEnter={() => setActiveTooltip('STREAK')}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    onClick={(e) => handleMobileTooltip(e, 'STREAK')}
+                  >
                     STRK
-                    <span className="tooltip">Current Streak: Consecutive wins or losses</span>
+                    {activeTooltip === 'STREAK' && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
+                        color: 'white',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        whiteSpace: 'normal',
+                        zIndex: 50,
+                        marginBottom: '8px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                        width: '220px',
+                        textAlign: 'center',
+                        lineHeight: '1.5',
+                        fontWeight: 'normal',
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
+                          {tooltips.STREAK.title}
+                        </div>
+                        <div style={{ color: '#e5e7eb' }}>
+                          {tooltips.STREAK.description}
+                        </div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '6px solid transparent',
+                          borderRight: '6px solid transparent',
+                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
+                          marginTop: '-1px'
+                        }} />
+                      </div>
+                    )}
                   </th>
                   
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider has-tooltip">
+                  <th 
+                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
+                    onMouseEnter={() => setActiveTooltip('POWER')}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    onClick={(e) => handleMobileTooltip(e, 'POWER')}
+                  >
                     <span style={{ 
                       background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
                       fontWeight: 'bold'
                     }}>PWR</span>
-                    <span className="tooltip">Power Rating: Overall performance score (0-100)</span>
+                    {activeTooltip === 'POWER' && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
+                        color: 'white',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        whiteSpace: 'normal',
+                        zIndex: 50,
+                        marginBottom: '8px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                        width: '220px',
+                        textAlign: 'center',
+                        lineHeight: '1.5',
+                        fontWeight: 'normal',
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
+                          {tooltips.POWER.title}
+                        </div>
+                        <div style={{ color: '#e5e7eb' }}>
+                          {tooltips.POWER.description}
+                        </div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '6px solid transparent',
+                          borderRight: '6px solid transparent',
+                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
+                          marginTop: '-1px'
+                        }} />
+                      </div>
+                    )}
                   </th>
                   
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider has-tooltip">
+                  <th 
+                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
+                    onMouseEnter={() => setActiveTooltip('LAST')}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    onClick={(e) => handleMobileTooltip(e, 'LAST')}
+                  >
                     LAST
-                    <span className="tooltip">Last Played: Date of most recent game</span>
+                    {activeTooltip === 'LAST' && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
+                        color: 'white',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        whiteSpace: 'normal',
+                        zIndex: 50,
+                        marginBottom: '8px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                        width: '220px',
+                        textAlign: 'center',
+                        lineHeight: '1.5',
+                        fontWeight: 'normal',
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
+                          {tooltips.LAST.title}
+                        </div>
+                        <div style={{ color: '#e5e7eb' }}>
+                          {tooltips.LAST.description}
+                        </div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '6px solid transparent',
+                          borderRight: '6px solid transparent',
+                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
+                          marginTop: '-1px'
+                        }} />
+                      </div>
+                    )}
                   </th>
                 </tr>
               </thead>
