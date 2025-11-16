@@ -338,6 +338,17 @@ export default function LeaderboardPage() {
 
         {/* Table */}
         <div className="bg-white shadow-lg rounded-lg overflow-hidden mx-2 sm:mx-0">
+          {/* Mobile Tips - Above Table */}
+          <div className="sm:hidden bg-blue-50 px-4 py-3 border-b border-blue-100">
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500 mt-0.5">ℹ️</span>
+              <div className="text-xs text-gray-700 space-y-1">
+                <div><span className="font-semibold">Tip 1:</span> Swipe left on the table to see all columns</div>
+                <div><span className="font-semibold">Tip 2:</span> Tap on column headers (GP, GD, OFF, etc.) to see what they mean</div>
+              </div>
+            </div>
+          </div>
+          
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -900,13 +911,12 @@ export default function LeaderboardPage() {
             </table>
           </div>
           
-          {/* Mobile Legend/Instructions */}
+          {/* Mobile Legend/Instructions - Bottom */}
           <div className="sm:hidden bg-gray-100 px-4 py-3 border-t">
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 mt-0.5">ℹ️</span>
-              <div className="text-xs text-gray-600 space-y-1">
-                <div><span className="font-semibold">Tip 1:</span> Tap on column headers (GP, GD, OFF, etc.) to see what they mean</div>
-                <div><span className="font-semibold">Tip 2:</span> Tap on a player's name to view their last 5 games</div>
+              <span className="text-green-500 mt-0.5">💡</span>
+              <div className="text-xs text-gray-600">
+                <span className="font-semibold">Tip:</span> Tap on a player's name to view their last 5 games
               </div>
             </div>
           </div>
