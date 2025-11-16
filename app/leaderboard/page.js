@@ -899,6 +899,36 @@ export default function LeaderboardPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* Mobile Legend/Instructions */}
+          <div className="sm:hidden bg-gray-100 px-4 py-3 border-t">
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500 mt-0.5">ℹ️</span>
+              <div className="text-xs text-gray-600">
+                <span className="font-semibold">Tip:</span> Tap on column headers (GP, GD, OFF, etc.) to see what they mean
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Desktop Legend */}
+        <div className="hidden sm:block mt-4 bg-white p-4 rounded-lg shadow-sm mx-2 sm:mx-0">
+          <div className="text-xs text-gray-600">
+            <span className="font-semibold">Legend:</span>
+            <span className="ml-3">GP = Games Played</span>
+            <span className="mx-2">•</span>
+            <span>GD = Goal Differential</span>
+            <span className="mx-2">•</span>
+            <span>OFF = Offensive Rating</span>
+            <span className="mx-2">•</span>
+            <span>DEF = Defensive Rating</span>
+            <span className="mx-2">•</span>
+            <span>NET = Net Rating</span>
+            <span className="mx-2">•</span>
+            <span>STRK = Current Streak</span>
+            <span className="mx-2">•</span>
+            <span>PWR = Power Rating</span>
+          </div>
         </div>
       </div>
 
