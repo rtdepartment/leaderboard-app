@@ -904,8 +904,9 @@ export default function LeaderboardPage() {
           <div className="sm:hidden bg-gray-100 px-4 py-3 border-t">
             <div className="flex items-start gap-2">
               <span className="text-blue-500 mt-0.5">ℹ️</span>
-              <div className="text-xs text-gray-600">
-                <span className="font-semibold">Tip:</span> Tap on column headers (GP, GD, OFF, etc.) to see what they mean
+              <div className="text-xs text-gray-600 space-y-1">
+                <div><span className="font-semibold">Tip 1:</span> Tap on column headers (GP, GD, OFF, etc.) to see what they mean</div>
+                <div><span className="font-semibold">Tip 2:</span> Tap on a player's name to view their last 5 games</div>
               </div>
             </div>
           </div>
