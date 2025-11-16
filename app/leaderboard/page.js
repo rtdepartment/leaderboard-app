@@ -13,6 +13,7 @@ export default function LeaderboardPage() {
   const [playerGames, setPlayerGames] = useState([])
   const [loadingGames, setLoadingGames] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   // Check if mobile on mount and window resize
   useEffect(() => {
@@ -367,6 +368,13 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchStats()
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   const fetchStats = async () => {
@@ -631,7 +639,7 @@ export default function LeaderboardPage() {
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     GP
                     {/* Desktop Tooltip */}
-                    {!isMobile && activeTooltip === 'GP' && (
+                    {activeTooltip === 'GP' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.GP.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.GP.description}</div>
@@ -656,7 +664,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('GD')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     GD
-                    {!isMobile && activeTooltip === 'GD' && (
+                    {activeTooltip === 'GD' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.GD.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.GD.description}</div>
@@ -669,7 +677,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('OFF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     OFF
-                    {!isMobile && activeTooltip === 'OFF' && (
+                    {activeTooltip === 'OFF' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.OFF.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.OFF.description}</div>
@@ -682,7 +690,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('DEF')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     DEF
-                    {!isMobile && activeTooltip === 'DEF' && (
+                    {activeTooltip === 'DEF' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.DEF.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.DEF.description}</div>
@@ -695,7 +703,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('NET')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     NET
-                    {!isMobile && activeTooltip === 'NET' && (
+                    {activeTooltip === 'NET' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.NET.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.NET.description}</div>
@@ -708,7 +716,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('STREAK')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     STRK
-                    {!isMobile && activeTooltip === 'STREAK' && (
+                    {activeTooltip === 'STREAK' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.STREAK.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.STREAK.description}</div>
@@ -728,7 +736,7 @@ export default function LeaderboardPage() {
                     }}>
                       PWR
                     </span>
-                    {!isMobile && activeTooltip === 'POWER' && (
+                    {activeTooltip === 'POWER' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg z-50" style={{ width: '200px' }}>
                         <div className="font-semibold">{tooltips.POWER.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.POWER.description}</div>
@@ -741,7 +749,7 @@ export default function LeaderboardPage() {
                       onMouseEnter={() => handleDesktopTooltipEnter('LAST')}
                       onMouseLeave={() => handleDesktopTooltipLeave()}>
                     LAST
-                    {!isMobile && activeTooltip === 'LAST' && (
+                    {activeTooltip === 'LAST' && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
                         <div className="font-semibold">{tooltips.LAST.title}</div>
                         <div className="text-gray-300 text-xs">{tooltips.LAST.description}</div>
