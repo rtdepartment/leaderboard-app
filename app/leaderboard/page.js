@@ -12,11 +12,18 @@ export default function LeaderboardPage() {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [playerGames, setPlayerGames] = useState([])
   const [loadingGames, setLoadingGames] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
-  // Ensure component is mounted before showing tooltips (fixes hydration)
+  // Check if mobile on mount and window resize
   useEffect(() => {
-    setMounted(true)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   // Add CSS animations and mobile styles
@@ -34,57 +41,27 @@ export default function LeaderboardPage() {
         }
       }
       
-      /* Desktop Tooltip Styles */
-      .tooltip-container {
-        position: relative;
-        display: inline-block;
-      }
-      
-      .desktop-tooltip {
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        margin-bottom: 8px;
-        padding: 8px 12px;
-        background-color: rgba(31, 41, 55, 0.95);
-        color: white;
-        border-radius: 6px;
-        font-size: 12px;
-        white-space: nowrap;
-        z-index: 9999;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.2s;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      }
-      
-      .desktop-tooltip.active {
-        opacity: 1;
-      }
-      
-      .desktop-tooltip::after {
-        content: '';
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-top: 5px solid rgba(31, 41, 55, 0.95);
+      @keyframes subtleGlow {
+        0%, 100% { 
+          opacity: 1;
+        }
+        50% { 
+          opacity: 0.95;
+        }
       }
 
-      .desktop-tooltip-title {
-        color: #60a5fa;
-        font-weight: 600;
-        margin-bottom: 2px;
+      /* Desktop tooltips - only show on hover for non-touch devices */
+      @media (hover: hover) and (pointer: fine) {
+        .desktop-tooltip {
+          display: block !important;
+        }
       }
 
-      .desktop-tooltip-desc {
-        color: #e5e7eb;
-        font-size: 11px;
+      /* Hide desktop tooltips on touch devices */
+      @media (hover: none) or (pointer: coarse) {
+        .desktop-tooltip {
+          display: none !important;
+        }
       }
 
       /* Mobile responsive styles */
@@ -249,11 +226,6 @@ export default function LeaderboardPage() {
           color: #e5e7eb;
           font-size: 10px;
         }
-
-        /* Hide desktop tooltips on mobile */
-        .desktop-tooltip {
-          display: none !important;
-        }
       }
 
       @media (max-width: 480px) {
@@ -314,35 +286,35 @@ export default function LeaderboardPage() {
   const tooltips = {
     GP: {
       title: 'Games Played',
-      description: 'Total number of games'
+      description: 'Total number of games participated in'
     },
     GD: {
       title: 'Goal Differential',
-      description: 'Goals scored minus conceded'
+      description: 'Total goals scored minus goals conceded'
     },
     OFF: {
       title: 'Offensive Rating',
-      description: 'Avg goals scored per game'
+      description: 'Average goals scored per game'
     },
     DEF: {
       title: 'Defensive Rating',
-      description: 'Avg goals conceded per game'
+      description: 'Average goals conceded per game'
     },
     NET: {
       title: 'Net Rating',
-      description: 'Avg goal diff per game'
+      description: 'Average goal differential per game'
     },
-    STRK: {
+    STREAK: {
       title: 'Current Streak',
-      description: 'Consecutive W/L/T'
+      description: 'Consecutive wins (W) or losses (L)'
     },
-    PWR: {
+    POWER: {
       title: 'Power Rating',
-      description: 'Overall performance (0-100)'
+      description: 'Overall performance score (0-100)'
     },
     LAST: {
       title: 'Last Played',
-      description: 'Most recent game date'
+      description: 'Date of most recent game'
     }
   }
 
@@ -409,6 +381,13 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchStats()
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   const fetchStats = async () => {
@@ -547,9 +526,9 @@ export default function LeaderboardPage() {
     setPlayerGames([])
   }
 
-  // Mobile tooltip handler
+  // Mobile tooltip handler (tap/click)
   const handleMobileTooltip = (e, tooltip) => {
-    if (typeof window === 'undefined' || window.innerWidth > 768) return
+    if (!isMobile) return // Desktop uses hover tooltips instead
     
     const existingTooltip = document.querySelector('.mobile-tooltip')
     if (existingTooltip) existingTooltip.remove()
@@ -580,6 +559,18 @@ export default function LeaderboardPage() {
     }, 3000)
   }
 
+  // Desktop tooltip handler (hover)
+  const handleDesktopTooltipEnter = (tooltip) => {
+    console.log('Hover enter:', tooltip, 'isMobile:', isMobile)
+    // Always set tooltip on desktop hover, let CSS handle mobile
+    setActiveTooltip(tooltip)
+  }
+
+  const handleDesktopTooltipLeave = () => {
+    console.log('Hover leave')
+    setActiveTooltip(null)
+  }
+
   // Sorting logic
   const sortedStats = [...stats].filter(player => player.games_played >= minGames).sort((a, b) => {
     switch(sortBy) {
@@ -599,21 +590,6 @@ export default function LeaderboardPage() {
       default: return (b.power_rating || 0) - (a.power_rating || 0)
     }
   })
-
-  // Render a tooltip for a column
-  const renderTooltip = (column) => {
-    if (!mounted) return null
-    
-    return (
-      <div 
-        className={`desktop-tooltip ${activeTooltip === column ? 'active' : ''}`}
-        style={{ minWidth: column === 'PWR' ? '180px' : '150px' }}
-      >
-        <div className="desktop-tooltip-title">{tooltips[column]?.title}</div>
-        <div className="desktop-tooltip-desc">{tooltips[column]?.description}</div>
-      </div>
-    )
-  }
 
   if (loading) {
     return (
@@ -671,18 +647,20 @@ export default function LeaderboardPage() {
                       onClick={() => setSortBy(sortBy === 'name' ? 'default' : 'name')}>
                     Player {sortBy === 'name' && '▼'}
                   </th>
-                  
-                  {/* GP Column with Tooltip */}
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'GP')}
-                      onMouseEnter={() => setActiveTooltip('GP')}
-                      onMouseLeave={() => setActiveTooltip(null)}>
-                    <div className="tooltip-container">
-                      GP
-                      {renderTooltip('GP')}
-                    </div>
+                      onMouseEnter={() => handleDesktopTooltipEnter('GP')}
+                      onMouseLeave={() => handleDesktopTooltipLeave()}>
+                    GP
+                    {/* Desktop Tooltip */}
+                    {activeTooltip === 'GP' && (
+                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                        <div className="font-semibold">{tooltips.GP.title}</div>
+                        <div className="text-gray-300 text-xs">{tooltips.GP.description}</div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    )}
                   </th>
-                  
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
                     W
                   </th>
@@ -693,91 +671,105 @@ export default function LeaderboardPage() {
                     T
                   </th>
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">
-                    WIN%
+                    Win%
                   </th>
-                  
-                  {/* GD Column with Tooltip */}
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'GD')}
-                      onMouseEnter={() => setActiveTooltip('GD')}
-                      onMouseLeave={() => setActiveTooltip(null)}>
-                    <div className="tooltip-container">
-                      GD
-                      {renderTooltip('GD')}
-                    </div>
+                      onMouseEnter={() => handleDesktopTooltipEnter('GD')}
+                      onMouseLeave={() => handleDesktopTooltipLeave()}>
+                    GD
+                    {activeTooltip === 'GD' && (
+                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                        <div className="font-semibold">{tooltips.GD.title}</div>
+                        <div className="text-gray-300 text-xs">{tooltips.GD.description}</div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    )}
                   </th>
-                  
-                  {/* OFF Column with Tooltip */}
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'OFF')}
-                      onMouseEnter={() => setActiveTooltip('OFF')}
-                      onMouseLeave={() => setActiveTooltip(null)}>
-                    <div className="tooltip-container">
-                      OFF
-                      {renderTooltip('OFF')}
-                    </div>
+                      onMouseEnter={() => handleDesktopTooltipEnter('OFF')}
+                      onMouseLeave={() => handleDesktopTooltipLeave()}>
+                    OFF
+                    {activeTooltip === 'OFF' && (
+                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                        <div className="font-semibold">{tooltips.OFF.title}</div>
+                        <div className="text-gray-300 text-xs">{tooltips.OFF.description}</div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    )}
                   </th>
-                  
-                  {/* DEF Column with Tooltip */}
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'DEF')}
-                      onMouseEnter={() => setActiveTooltip('DEF')}
-                      onMouseLeave={() => setActiveTooltip(null)}>
-                    <div className="tooltip-container">
-                      DEF
-                      {renderTooltip('DEF')}
-                    </div>
+                      onMouseEnter={() => handleDesktopTooltipEnter('DEF')}
+                      onMouseLeave={() => handleDesktopTooltipLeave()}>
+                    DEF
+                    {activeTooltip === 'DEF' && (
+                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                        <div className="font-semibold">{tooltips.DEF.title}</div>
+                        <div className="text-gray-300 text-xs">{tooltips.DEF.description}</div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    )}
                   </th>
-                  
-                  {/* NET Column with Tooltip */}
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'NET')}
-                      onMouseEnter={() => setActiveTooltip('NET')}
-                      onMouseLeave={() => setActiveTooltip(null)}>
-                    <div className="tooltip-container">
-                      NET
-                      {renderTooltip('NET')}
-                    </div>
+                      onMouseEnter={() => handleDesktopTooltipEnter('NET')}
+                      onMouseLeave={() => handleDesktopTooltipLeave()}>
+                    NET
+                    {activeTooltip === 'NET' && (
+                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                        <div className="font-semibold">{tooltips.NET.title}</div>
+                        <div className="text-gray-300 text-xs">{tooltips.NET.description}</div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    )}
                   </th>
-                  
-                  {/* STRK Column with Tooltip */}
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
-                      onClick={(e) => handleMobileTooltip(e, 'STRK')}
-                      onMouseEnter={() => setActiveTooltip('STRK')}
-                      onMouseLeave={() => setActiveTooltip(null)}>
-                    <div className="tooltip-container">
-                      STRK
-                      {renderTooltip('STRK')}
-                    </div>
+                      onClick={(e) => handleMobileTooltip(e, 'STREAK')}
+                      onMouseEnter={() => handleDesktopTooltipEnter('STREAK')}
+                      onMouseLeave={() => handleDesktopTooltipLeave()}>
+                    STRK
+                    {activeTooltip === 'STREAK' && (
+                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                        <div className="font-semibold">{tooltips.STREAK.title}</div>
+                        <div className="text-gray-300 text-xs">{tooltips.STREAK.description}</div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    )}
                   </th>
-                  
-                  {/* PWR Column with Tooltip */}
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
-                      onClick={(e) => handleMobileTooltip(e, 'PWR')}
-                      onMouseEnter={() => setActiveTooltip('PWR')}
-                      onMouseLeave={() => setActiveTooltip(null)}>
-                    <div className="tooltip-container">
-                      <span style={{ 
-                        background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        fontWeight: 'bold'
-                      }}>
-                        PWR
-                      </span>
-                      {renderTooltip('PWR')}
-                    </div>
+                      onClick={(e) => handleMobileTooltip(e, 'POWER')}
+                      onMouseEnter={() => handleDesktopTooltipEnter('POWER')}
+                      onMouseLeave={() => handleDesktopTooltipLeave()}>
+                    <span style={{ 
+                      background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      fontWeight: 'bold'
+                    }}>
+                      PWR
+                    </span>
+                    {activeTooltip === 'POWER' && (
+                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg z-50" style={{ width: '200px' }}>
+                        <div className="font-semibold">{tooltips.POWER.title}</div>
+                        <div className="text-gray-300 text-xs">{tooltips.POWER.description}</div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    )}
                   </th>
-                  
-                  {/* LAST Column with Tooltip */}
                   <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative"
                       onClick={(e) => handleMobileTooltip(e, 'LAST')}
-                      onMouseEnter={() => setActiveTooltip('LAST')}
-                      onMouseLeave={() => setActiveTooltip(null)}>
-                    <div className="tooltip-container">
-                      LAST
-                      {renderTooltip('LAST')}
-                    </div>
+                      onMouseEnter={() => handleDesktopTooltipEnter('LAST')}
+                      onMouseLeave={() => handleDesktopTooltipLeave()}>
+                    LAST
+                    {activeTooltip === 'LAST' && (
+                      <div className="desktop-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                        <div className="font-semibold">{tooltips.LAST.title}</div>
+                        <div className="text-gray-300 text-xs">{tooltips.LAST.description}</div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    )}
                   </th>
                 </tr>
               </thead>
@@ -954,29 +946,29 @@ export default function LeaderboardPage() {
             className="player-modal-content" 
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: typeof window !== 'undefined' && window.innerWidth < 768 ? '95%' : '500px',
-              maxHeight: typeof window !== 'undefined' && window.innerWidth < 768 ? '80vh' : '70vh',
-              margin: typeof window !== 'undefined' && window.innerWidth < 768 ? '10px' : '20px'
+              maxWidth: isMobile ? '95%' : '500px',
+              maxHeight: isMobile ? '80vh' : '70vh',
+              margin: isMobile ? '10px' : '20px'
             }}
           >
             {/* Modal Header */}
             <div style={{
               backgroundColor: '#f3f4f6',
-              padding: typeof window !== 'undefined' && window.innerWidth < 768 ? '12px 16px' : '16px 24px',
+              padding: isMobile ? '12px 16px' : '16px 24px',
               borderBottom: '1px solid #e5e7eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
               <h2 className="font-semibold text-gray-900 capitalize" 
-                  style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '16px' : '18px' }}>
+                  style={{ fontSize: isMobile ? '16px' : '18px' }}>
                 {selectedPlayer.name}'s Last 5 Games
               </h2>
               <button 
                 onClick={closePlayerModal}
                 className="text-gray-400 hover:text-gray-600"
                 style={{ 
-                  fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '28px' : '24px', 
+                  fontSize: isMobile ? '28px' : '24px', 
                   lineHeight: '1',
                   padding: '4px',
                   marginRight: '-4px'
@@ -988,7 +980,7 @@ export default function LeaderboardPage() {
 
             {/* Modal Body */}
             <div style={{ 
-              padding: typeof window !== 'undefined' && window.innerWidth < 768 ? '12px' : '20px', 
+              padding: isMobile ? '12px' : '20px', 
               overflowY: 'auto',
               maxHeight: 'calc(100% - 60px)'
             }}>
@@ -1001,10 +993,10 @@ export default function LeaderboardPage() {
                 <div className="space-y-2 sm:space-y-3">
                   {playerGames.map((game, idx) => (
                     <div key={game.id} className="border rounded-lg bg-gray-50" 
-                         style={{ padding: typeof window !== 'undefined' && window.innerWidth < 768 ? '10px' : '12px' }}>
+                         style={{ padding: isMobile ? '10px' : '12px' }}>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-gray-600" 
-                              style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '12px' : '14px' }}>
+                              style={{ fontSize: isMobile ? '12px' : '14px' }}>
                           {new Date(game.date).toLocaleDateString('en-US', {
                             weekday: 'short',
                             month: 'short',
@@ -1016,18 +1008,18 @@ export default function LeaderboardPage() {
                           ${game.result === 'W' ? 'bg-green-100 text-green-800' : 
                             game.result === 'L' ? 'bg-red-100 text-red-800' : 
                             'bg-gray-100 text-gray-800'}
-                        `} style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '11px' : '12px' }}>
+                        `} style={{ fontSize: isMobile ? '11px' : '12px' }}>
                           {game.result === 'W' ? 'WIN' : game.result === 'L' ? 'LOSS' : 'TIE'}
                         </span>
                       </div>
                       <div className="text-center">
                         <span className="font-bold text-gray-900" 
-                              style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '20px' : '24px' }}>
+                              style={{ fontSize: isMobile ? '20px' : '24px' }}>
                           {game.playerScore} - {game.opponentScore}
                         </span>
                       </div>
                       <div className="text-center mt-1"
-                           style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '11px' : '12px' }}>
+                           style={{ fontSize: isMobile ? '11px' : '12px' }}>
                         <span style={{
                           ...getTeamStyle(game.playerTeam),
                           backgroundColor: game.playerTeam === 'A' ? '#f3f4f6' : '#ffffff',
@@ -1046,7 +1038,7 @@ export default function LeaderboardPage() {
                   ))}
                   
                   {/* Stats Summary for Mobile */}
-                  {typeof window !== 'undefined' && window.innerWidth < 768 && playerGames.length > 0 && (
+                  {isMobile && playerGames.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <div className="flex justify-around text-center">
                         <div>
@@ -1073,7 +1065,7 @@ export default function LeaderboardPage() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-600" style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '14px' : '16px' }}>
+                  <p className="text-gray-600" style={{ fontSize: window.innerWidth < 768 ? '14px' : '16px' }}>
                     No recent games found
                   </p>
                   <p className="text-gray-400 text-sm mt-2">
