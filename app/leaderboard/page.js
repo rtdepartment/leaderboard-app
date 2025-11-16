@@ -12,6 +12,7 @@ export default function LeaderboardPage() {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [playerGames, setPlayerGames] = useState([])
   const [loadingGames, setLoadingGames] = useState(false)
+  const [showMobileHelp, setShowMobileHelp] = useState(false)
 
   // Tooltip definitions - EXACT from original
   const tooltips = {
@@ -338,13 +339,55 @@ export default function LeaderboardPage() {
 
         {/* Table */}
         <div className="bg-white shadow-lg rounded-lg overflow-hidden mx-2 sm:mx-0">
-          {/* Mobile Tips - Above Table */}
-          <div className="sm:hidden bg-blue-50 px-4 py-3 border-b border-blue-100">
-            <div className="flex items-start gap-2">
-              <span className="text-blue-500 mt-0.5">ℹ️</span>
-              <div className="text-xs text-gray-700 space-y-1">
-                <div><span className="font-semibold">Tip 1:</span> Swipe left on the table to see all columns</div>
-                <div><span className="font-semibold">Tip 2:</span> Tap on column headers (GP, GD, OFF, etc.) to see what they mean</div>
+          {/* Mobile Tips - Above Table - Card Design */}
+          <div className="sm:hidden" style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            padding: '12px',
+          }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '8px',
+              padding: '12px',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+            }}>
+              <div className="flex items-center gap-3 mb-2">
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <span style={{ fontSize: '16px' }}>👆</span>
+                </div>
+                <div className="text-xs">
+                  <div className="font-bold text-gray-900 mb-1">Quick Navigation Tips</div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-start gap-2">
+                      <span style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        fontWeight: 'bold',
+                        fontSize: '10px'
+                      }}>→</span>
+                      <span className="text-gray-700">Swipe left to see all stats columns</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        fontWeight: 'bold',
+                        fontSize: '10px'
+                      }}>?</span>
+                      <span className="text-gray-700">Tap column headers for explanations</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -911,12 +954,55 @@ export default function LeaderboardPage() {
             </table>
           </div>
           
-          {/* Mobile Legend/Instructions - Bottom */}
-          <div className="sm:hidden bg-gray-100 px-4 py-3 border-t">
-            <div className="flex items-start gap-2">
-              <span className="text-green-500 mt-0.5">💡</span>
-              <div className="text-xs text-gray-600">
-                <span className="font-semibold">Tip:</span> Tap on a player's name to view their last 5 games
+          {/* Mobile Legend/Instructions - Bottom - Interactive Card */}
+          <div className="sm:hidden bg-gradient-to-r from-gray-50 to-gray-100 p-3">
+            <div style={{
+              background: 'white',
+              borderRadius: '8px',
+              padding: '10px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+            }}>
+              <div className="flex items-center gap-2">
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <span style={{ fontSize: '14px' }}>👤</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <span className="text-xs font-bold text-gray-900">Player Stats</span>
+                    <span style={{
+                      fontSize: '8px',
+                      background: '#10b981',
+                      color: 'white',
+                      padding: '1px 4px',
+                      borderRadius: '4px',
+                      fontWeight: 'bold'
+                    }}>INTERACTIVE</span>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Tap any player name to view their last 5 games
+                  </div>
+                </div>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#f3f4f6',
+                  borderRadius: '50%'
+                }}>
+                  <span style={{ fontSize: '10px', color: '#9ca3af' }}>›</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1014,6 +1100,178 @@ export default function LeaderboardPage() {
                   <p className="text-gray-600">No recent games found</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Floating Help Button - Mobile Only */}
+      <div 
+        className="sm:hidden"
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          zIndex: 40
+        }}
+      >
+        <button
+          onClick={() => setShowMobileHelp(true)}
+          style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            fontSize: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          ?
+        </button>
+      </div>
+      
+      {/* Mobile Help Modal */}
+      {showMobileHelp && (
+        <div 
+          className="sm:hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          onClick={() => setShowMobileHelp(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-sm overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              padding: '16px',
+              color: 'white'
+            }}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold">How to Use</h2>
+                <button 
+                  onClick={() => setShowMobileHelp(false)}
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: 'none',
+                    fontSize: '18px'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="p-4 overflow-y-auto">
+              {/* Navigation Section */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    ↔️
+                  </div>
+                  <h3 className="font-bold text-gray-900">Navigation</h3>
+                </div>
+                <p className="text-sm text-gray-600 ml-10">
+                  Swipe left/right on the table to view all statistics columns
+                </p>
+              </div>
+              
+              {/* Column Headers Section */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    📊
+                  </div>
+                  <h3 className="font-bold text-gray-900">Column Meanings</h3>
+                </div>
+                <p className="text-sm text-gray-600 ml-10">
+                  Tap any column header to see what it means
+                </p>
+                <div className="ml-10 mt-2 grid grid-cols-3 gap-1 text-xs">
+                  <span className="bg-gray-100 px-2 py-1 rounded">GP = Games</span>
+                  <span className="bg-gray-100 px-2 py-1 rounded">GD = Goal Diff</span>
+                  <span className="bg-gray-100 px-2 py-1 rounded">OFF = Offense</span>
+                  <span className="bg-gray-100 px-2 py-1 rounded">DEF = Defense</span>
+                  <span className="bg-gray-100 px-2 py-1 rounded">NET = Net</span>
+                  <span className="bg-gray-100 px-2 py-1 rounded">PWR = Power</span>
+                </div>
+              </div>
+              
+              {/* Player Stats Section */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    👤
+                  </div>
+                  <h3 className="font-bold text-gray-900">Player Details</h3>
+                </div>
+                <p className="text-sm text-gray-600 ml-10">
+                  Tap any player's name to view their last 5 games and performance
+                </p>
+              </div>
+              
+              {/* Sorting Section */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    🔄
+                  </div>
+                  <h3 className="font-bold text-gray-900">Sorting</h3>
+                </div>
+                <p className="text-sm text-gray-600 ml-10">
+                  Use the dropdown menu above the table to sort by different stats
+                </p>
+              </div>
             </div>
           </div>
         </div>
