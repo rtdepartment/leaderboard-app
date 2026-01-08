@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export default function LeaderboardPage() {
@@ -12,59 +12,25 @@ export default function LeaderboardPage() {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [playerGames, setPlayerGames] = useState([])
   const [loadingGames, setLoadingGames] = useState(false)
-  const [showMobileHelp, setShowMobileHelp] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [showMobileTooltip, setShowMobileTooltip] = useState(null)
+  const [hasScrolled, setHasScrolled] = useState(false)
+  const tableRef = useRef(null)
 
-  // Tooltip definitions - EXACT from original
+  // Tooltip definitions
   const tooltips = {
-    GP: {
-      title: "GAMES PLAYED",
-      description: "Total number of games the player has participated in"
-    },
-    GD: {
-      title: "GOAL DIFFERENCE",
-      description: "Total goals scored minus goals conceded"
-    },
-    OFF: {
-      title: "OFFENSIVE RATING", 
-      description: "Average goals your team scores per game when you're playing."
-    },
-    DEF: {
-      title: "DEFENSIVE RATING",
-      description: "Average goals your team allows per game when you're playing."
-    },
-    NET: {
-      title: "NET RATING",
-      description: "Goal differential per game (OFF - DEF). Positive means teams with you outscore opponents on average."
-    },
-    STREAK: {
-      title: "CURRENT STREAK",
-      description: "Current winning (W) or losing (L) streak. Shows consecutive results of the same type."
-    },
-    POWER: {
-      title: "POWER RATING",
-      description: "Comprehensive player strength metric (0-100)"
-    },
-    LAST: {
-      title: "LAST PLAYED",
-      description: "Date of the player's most recent game"
-    }
+    GP: { title: "Games Played", description: "Total matches participated" },
+    GD: { title: "Goal Difference", description: "Goals scored minus conceded" },
+    OFF: { title: "Offensive Rating", description: "Avg goals scored per game" },
+    DEF: { title: "Defensive Rating", description: "Avg goals conceded per game" },
+    NET: { title: "Net Rating", description: "OFF minus DEF per game" },
+    STREAK: { title: "Current Streak", description: "Consecutive W/L results" },
+    POWER: { title: "Power Index", description: "Composite performance metric (0-100)" },
+    LAST: { title: "Last Played", description: "Most recent match date" }
   }
 
-  // Helper function to get team name
-  const getTeamName = (team) => {
-    return team === 'A' ? 'Black' : 'White'
-  }
+  const getTeamName = (team) => team === 'A' ? 'Black' : 'White'
 
-  // Helper function to get team color styling
-  const getTeamStyle = (team) => {
-    if (team === 'A') {
-      return { color: '#1f2937', fontWeight: '600' }
-    } else {
-      return { color: '#6b7280', fontWeight: '600' }
-    }
-  }
-
-  // Country flag helper function - converts any 2-letter ISO code to flag emoji
   const getCountryFlag = (countryCode) => {
     if (!countryCode || countryCode.length !== 2) return ''
     const codePoints = [...countryCode.toUpperCase()].map(
@@ -74,53 +40,36 @@ export default function LeaderboardPage() {
   }
 
   useEffect(() => {
+    setMounted(true)
     fetchStats()
   }, [])
 
-  // Mobile tooltip CSS injection
+  // Track horizontal scroll to hide swipe indicator
   useEffect(() => {
-    const style = document.createElement('style')
-    style.textContent = `
-      .mobile-tooltip {
-        position: fixed;
-        background-color: rgba(31, 41, 55, 0.95);
-        color: white;
-        padding: 10px 14px;
-        border-radius: 8px;
-        font-size: 12px;
-        white-space: normal;
-        z-index: 9999;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        width: 200px;
-        text-align: center;
-        line-height: 1.5;
-        animation: fadeIn 0.2s;
+    const handleScroll = () => {
+      if (tableRef.current && tableRef.current.scrollLeft > 20) {
+        setHasScrolled(true)
       }
-      
-      .mobile-tooltip-title {
-        color: #60a5fa;
-        font-weight: 600;
-        margin-bottom: 4px;
-      }
-      
-      .mobile-tooltip-desc {
-        color: #e5e7eb;
-      }
-      
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(5px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
+    }
+    const ref = tableRef.current
+    if (ref) {
+      ref.addEventListener('scroll', handleScroll)
+      return () => ref.removeEventListener('scroll', handleScroll)
+    }
+  }, [loading])
 
-      @media (min-width: 768px) {
-        .mobile-tooltip {
-          display: none !important;
-        }
-      }
-    `
-    document.head.appendChild(style)
-    return () => document.head.removeChild(style)
-  }, [])
+  // Mobile tooltip handler
+  const handleMobileTooltip = (tooltipKey) => {
+    if (window.innerWidth >= 768) return // Desktop uses hover
+
+    if (showMobileTooltip === tooltipKey) {
+      setShowMobileTooltip(null)
+    } else {
+      setShowMobileTooltip(tooltipKey)
+      // Auto-dismiss after 3 seconds
+      setTimeout(() => setShowMobileTooltip(null), 3000)
+    }
+  }
 
   const fetchStats = async () => {
     setLoading(true)
@@ -139,18 +88,15 @@ export default function LeaderboardPage() {
 
   const calculateStreaksForPlayers = async (playerStats) => {
     const statsWithStreaks = []
-    
     for (const player of playerStats) {
       let streak = player.current_streak || '-'
       const power = calculatePowerRating(player)
-      
       statsWithStreaks.push({
         ...player,
         current_streak: streak,
         power_rating: power
       })
     }
-    
     return statsWithStreaks
   }
 
@@ -158,74 +104,20 @@ export default function LeaderboardPage() {
     const winPct = player.win_percentage || 0
     const avgGoalDiff = player.avg_goal_diff || 0
     const gamesPlayed = player.games_played || 0
-    
+
     const winComponent = (winPct / 100) * 50
     const goalDiffNormalized = Math.max(0, Math.min(1, (avgGoalDiff + 3) / 6))
     const netRatingComponent = goalDiffNormalized * 35
     const experienceComponent = Math.min(15, (gamesPlayed / 20) * 15)
-    
+
     const totalPower = winComponent + netRatingComponent + experienceComponent
     return Math.min(100, Math.round(totalPower * 10) / 10)
   }
 
-  // Mobile tooltip handler
-  const handleMobileTooltip = (e, tooltipKey) => {
-    // Only on mobile/touch devices
-    if (window.innerWidth > 768) return
-    
-    // Remove any existing tooltip
-    const existingTooltip = document.querySelector('.mobile-tooltip')
-    if (existingTooltip) existingTooltip.remove()
-    
-    // If clicking same tooltip, just close it
-    if (activeTooltip === tooltipKey) {
-      setActiveTooltip(null)
-      return
-    }
-    
-    // Create new tooltip
-    const tooltip = tooltips[tooltipKey]
-    if (!tooltip) return
-    
-    const tooltipDiv = document.createElement('div')
-    tooltipDiv.className = 'mobile-tooltip'
-    tooltipDiv.innerHTML = `
-      <div class="mobile-tooltip-title">${tooltip.title}</div>
-      <div class="mobile-tooltip-desc">${tooltip.description}</div>
-    `
-    
-    document.body.appendChild(tooltipDiv)
-    
-    // Position tooltip
-    const rect = e.target.getBoundingClientRect()
-    const tooltipHeight = 80 // Approximate height
-    const viewportHeight = window.innerHeight
-    
-    // Position above or below based on space
-    if (rect.top > tooltipHeight + 10) {
-      // Position above
-      tooltipDiv.style.left = Math.min(Math.max(10, rect.left + rect.width/2 - 100), window.innerWidth - 210) + 'px'
-      tooltipDiv.style.top = (rect.top - tooltipHeight - 5) + 'px'
-    } else {
-      // Position below
-      tooltipDiv.style.left = Math.min(Math.max(10, rect.left + rect.width/2 - 100), window.innerWidth - 210) + 'px'
-      tooltipDiv.style.top = (rect.bottom + 5) + 'px'
-    }
-    
-    setActiveTooltip(tooltipKey)
-    
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-      tooltipDiv.remove()
-      setActiveTooltip(null)
-    }, 3000)
-  }
-
-  // Fetch player's last 5 games
-  const fetchPlayerGames = async (playerId, playerName) => {
-    setSelectedPlayer({ id: playerId, name: playerName })
+  const fetchPlayerGames = async (playerId, playerName, playerCountry) => {
+    setSelectedPlayer({ id: playerId, name: playerName, country: playerCountry })
     setLoadingGames(true)
-    
+
     try {
       const { data: gamePlayerData, error: gpError } = await supabase
         .from('game_players')
@@ -238,7 +130,7 @@ export default function LeaderboardPage() {
 
       if (gamePlayerData && gamePlayerData.length > 0) {
         const gameIds = gamePlayerData.map(gp => gp.game_id)
-        
+
         const { data: games, error: gamesError } = await supabase
           .from('games')
           .select('id, game_date, team_a_score, team_b_score')
@@ -252,27 +144,20 @@ export default function LeaderboardPage() {
           const playerTeam = playerGame.team
           const playerScore = playerTeam === 'A' ? game.team_a_score : game.team_b_score
           const opponentScore = playerTeam === 'A' ? game.team_b_score : game.team_a_score
-          
+
           let result = 'T'
           if (playerScore > opponentScore) result = 'W'
           else if (playerScore < opponentScore) result = 'L'
-          
-          return {
-            ...game,
-            date: game.game_date,
-            playerTeam,
-            playerScore,
-            opponentScore,
-            result
-          }
+
+          return { ...game, date: game.game_date, playerTeam, playerScore, opponentScore, result }
         })
-        
+
         setPlayerGames(formattedGames)
       }
     } catch (error) {
       console.error('Error fetching player games:', error)
     }
-    
+
     setLoadingGames(false)
   }
 
@@ -281,7 +166,6 @@ export default function LeaderboardPage() {
     setPlayerGames([])
   }
 
-  // Sorting logic
   const sortedStats = [...stats].filter(player => player.games_played >= minGames).sort((a, b) => {
     switch(sortBy) {
       case 'name': return a.name.localeCompare(b.name)
@@ -294,655 +178,426 @@ export default function LeaderboardPage() {
     }
   })
 
+  // Rank badge component
+  const RankBadge = ({ rank }) => {
+    if (rank === 1) {
+      return (
+        <div className="relative flex items-center justify-center w-8 h-8">
+          <div className="absolute inset-0 rounded-full opacity-20" style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }} />
+          <span className="relative text-sm font-bold" style={{ color: '#fbbf24' }}>1</span>
+        </div>
+      )
+    }
+    if (rank === 2) {
+      return (
+        <div className="relative flex items-center justify-center w-8 h-8">
+          <div className="absolute inset-0 rounded-full opacity-15" style={{ background: 'linear-gradient(135deg, #9ca3af, #6b7280)' }} />
+          <span className="relative text-sm font-bold" style={{ color: '#9ca3af' }}>2</span>
+        </div>
+      )
+    }
+    if (rank === 3) {
+      return (
+        <div className="relative flex items-center justify-center w-8 h-8">
+          <div className="absolute inset-0 rounded-full opacity-15" style={{ background: 'linear-gradient(135deg, #cd7f32, #b87333)' }} />
+          <span className="relative text-sm font-bold" style={{ color: '#cd7f32' }}>3</span>
+        </div>
+      )
+    }
+    return <span className="text-sm text-zinc-500 w-8 text-center tabular-nums">{rank}</span>
+  }
+
+  // Power Rating component with premium styling
+  const PowerBadge = ({ rating, rank }) => {
+    const isElite = rating >= 70
+    const isStrong = rating >= 50
+
+    let bgStyle = {}
+    let glowStyle = {}
+    let textColor = '#a1a1aa'
+
+    if (rank === 1) {
+      bgStyle = { background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.1))' }
+      glowStyle = { boxShadow: '0 0 20px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(255,255,255,0.1)' }
+      textColor = '#fbbf24'
+    } else if (rank === 2) {
+      bgStyle = { background: 'linear-gradient(135deg, rgba(156, 163, 175, 0.15), rgba(107, 114, 128, 0.1))' }
+      glowStyle = { boxShadow: '0 0 15px rgba(156, 163, 175, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)' }
+      textColor = '#d1d5db'
+    } else if (rank === 3) {
+      bgStyle = { background: 'linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(184, 115, 51, 0.1))' }
+      glowStyle = { boxShadow: '0 0 15px rgba(205, 127, 50, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)' }
+      textColor = '#cd7f32'
+    } else if (isElite) {
+      bgStyle = { background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(16, 185, 129, 0.08))' }
+      textColor = '#4ade80'
+    } else if (isStrong) {
+      bgStyle = { background: 'rgba(59, 130, 246, 0.1)' }
+      textColor = '#60a5fa'
+    } else {
+      bgStyle = { background: 'rgba(113, 113, 122, 0.1)' }
+    }
+
+    return (
+      <div
+        className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg transition-all duration-200"
+        style={{
+          ...bgStyle,
+          ...glowStyle,
+          minWidth: '52px',
+          border: rank <= 3 ? '1px solid rgba(255,255,255,0.1)' : 'none'
+        }}
+      >
+        <span
+          className="text-sm font-semibold tabular-nums"
+          style={{ color: textColor }}
+        >
+          {rating?.toFixed(1)}
+        </span>
+      </div>
+    )
+  }
+
+  // Stat value with subtle coloring
+  const StatValue = ({ value, positive, showSign = false, muted = false }) => {
+    if (muted || value === 0) {
+      return <span className="text-zinc-600 tabular-nums">{value}</span>
+    }
+
+    const isPositive = positive !== undefined ? positive : value > 0
+    const color = isPositive ? '#4ade80' : '#f87171'
+    const sign = showSign && value > 0 ? '+' : ''
+
+    return (
+      <span className="tabular-nums" style={{ color }}>
+        {sign}{typeof value === 'number' && value % 1 !== 0 ? value.toFixed(1) : value}
+      </span>
+    )
+  }
+
+  // Tooltip component
+  const Tooltip = ({ tooltip, position = 'top' }) => {
+    if (!tooltip) return null
+    return (
+      <div
+        className="absolute z-50 pointer-events-none"
+        style={{
+          bottom: position === 'top' ? '100%' : 'auto',
+          top: position === 'bottom' ? '100%' : 'auto',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          marginBottom: position === 'top' ? '8px' : 0,
+          marginTop: position === 'bottom' ? '8px' : 0
+        }}
+      >
+        <div
+          className="px-3 py-2 rounded-lg text-center"
+          style={{
+            background: 'rgba(24, 24, 27, 0.98)',
+            border: '1px solid rgba(63, 63, 70, 0.5)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            minWidth: '180px'
+          }}
+        >
+          <div className="text-xs font-medium text-zinc-300 mb-0.5">{tooltip.title}</div>
+          <div className="text-xs text-zinc-500">{tooltip.description}</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Column header with tooltip (hover on desktop, tap on mobile)
+  const ColumnHeader = ({ label, tooltipKey, className = '', highlight = false }) => (
+    <th
+      className={`px-2 sm:px-3 py-3 sm:py-4 text-center text-xs font-medium uppercase tracking-wider relative cursor-help transition-colors duration-150 ${className}`}
+      style={{ color: highlight ? '#fbbf24' : '#71717a' }}
+      onMouseEnter={() => setActiveTooltip(tooltipKey)}
+      onMouseLeave={() => setActiveTooltip(null)}
+      onClick={() => handleMobileTooltip(tooltipKey)}
+    >
+      {label}
+      {/* Desktop tooltip (hover) */}
+      {activeTooltip === tooltipKey && <Tooltip tooltip={tooltips[tooltipKey]} />}
+      {/* Mobile tooltip (tap) */}
+      {showMobileTooltip === tooltipKey && (
+        <div
+          className="absolute z-50 sm:hidden"
+          style={{
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: '8px'
+          }}
+        >
+          <div
+            className="px-3 py-2 rounded-lg text-center"
+            style={{
+              background: 'rgba(24, 24, 27, 0.98)',
+              border: '1px solid rgba(251, 191, 36, 0.3)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+              minWidth: '160px'
+            }}
+          >
+            <div className="text-xs font-medium mb-0.5" style={{ color: '#fbbf24' }}>{tooltips[tooltipKey]?.title}</div>
+            <div className="text-xs text-zinc-400">{tooltips[tooltipKey]?.description}</div>
+          </div>
+        </div>
+      )}
+    </th>
+  )
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#09090b' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading leaderboard...</p>
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-2 border-zinc-800" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-amber-500 animate-spin" />
+          </div>
+          <p className="text-zinc-500 text-sm">Loading standings...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
+    <div className="min-h-screen" style={{ background: '#09090b' }}>
+      {/* Subtle gradient overlay */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at top, rgba(251, 191, 36, 0.03) 0%, transparent 50%)',
+        }}
+      />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
-        <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 px-2">
-            Strikers Leaderboard
-          </h1>
-        </div>
+        <header className="mb-8 sm:mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: '#fbbf24' }}>
+                Season Rankings
+              </p>
+              <h1
+                className="text-3xl sm:text-4xl lg:text-5xl font-light tracking-tight"
+                style={{ color: '#fafafa' }}
+              >
+                Strikers
+              </h1>
+            </div>
 
-        {/* Filters */}
-        <div className="mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-lg shadow-sm mx-2 sm:mx-0">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
-              Sort By
-            </label>
-            <select 
-              className="px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:ring-blue-500 focus:border-blue-500"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="default">Power Rating</option>
-              <option value="name">Name</option>
-              <option value="games_played">Games Played</option>
-              <option value="wins">Wins</option>
-              <option value="win_percentage">Win %</option>
-              <option value="goal_differential">Goal Diff</option>
-              <option value="net_rating">Net Rating</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white shadow-lg rounded-lg overflow-hidden mx-2 sm:mx-0">
-          {/* Mobile Tips - Above Table - Card Design */}
-          <div className="sm:hidden" style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '12px',
-          }}>
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              borderRadius: '8px',
-              padding: '12px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-            }}>
-              <div className="flex items-center gap-3 mb-2">
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <span style={{ fontSize: '16px' }}>👆</span>
-                </div>
-                <div className="text-xs">
-                  <div className="font-bold text-gray-900 mb-1">Quick Navigation Tips</div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-start gap-2">
-                      <span style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        fontWeight: 'bold',
-                        fontSize: '10px'
-                      }}>→</span>
-                      <span className="text-gray-700">Swipe left to see all stats columns</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        fontWeight: 'bold',
-                        fontSize: '10px'
-                      }}>?</span>
-                      <span className="text-gray-700">Tap column headers for explanations</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {/* Sort Control */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-zinc-500 uppercase tracking-wider">Sort</span>
+              <select
+                className="appearance-none px-4 py-2.5 rounded-lg text-sm transition-all duration-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                style={{
+                  background: '#18181b',
+                  border: '1px solid #27272a',
+                  color: '#e4e4e7'
+                }}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="default">Power Index</option>
+                <option value="name">Name</option>
+                <option value="games_played">Games Played</option>
+                <option value="wins">Wins</option>
+                <option value="win_percentage">Win Rate</option>
+                <option value="goal_differential">Goal Diff</option>
+                <option value="net_rating">Net Rating</option>
+              </select>
             </div>
           </div>
-          
-          <div className="overflow-x-auto">
+        </header>
+
+        {/* Main Table Card */}
+        <div
+          className="rounded-xl overflow-hidden relative"
+          style={{
+            background: '#0f0f11',
+            border: '1px solid #1f1f23',
+            boxShadow: '0 4px 40px rgba(0,0,0,0.4)'
+          }}
+        >
+          {/* Mobile Swipe Indicator */}
+          {!hasScrolled && (
+            <div
+              className="sm:hidden absolute top-0 right-0 bottom-0 w-12 pointer-events-none z-10 flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(to right, transparent, rgba(251, 191, 36, 0.1))',
+              }}
+            >
+              <div
+                className="flex flex-col items-center gap-1 animate-pulse"
+                style={{ color: '#fbbf24' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+                <span className="text-xs font-medium" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                  swipe
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Tip Bar */}
+          <div
+            className="sm:hidden px-4 py-2.5 flex items-center justify-between"
+            style={{ background: '#141417', borderBottom: '1px solid #1f1f23' }}
+          >
+            <span className="text-xs text-zinc-500">Tap headers for info</span>
+            <span className="text-xs text-zinc-500">Tap names for history</span>
+          </div>
+
+          <div className="overflow-x-auto" ref={tableRef}>
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-900 text-white">
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium uppercase tracking-wider">#</th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium uppercase tracking-wider">Player</th>
-                  
-                  {/* GP with working tooltip */}
-                  <th 
-                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
-                    onMouseEnter={() => setActiveTooltip('GP')}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={(e) => handleMobileTooltip(e, 'GP')}
-                  >
-                    GP
-                    {activeTooltip === 'GP' && (
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          bottom: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          backgroundColor: 'rgba(31, 41, 55, 0.95)',
-                          color: 'white',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          whiteSpace: 'normal',
-                          zIndex: 50,
-                          marginBottom: '8px',
-                          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                          width: '220px',
-                          textAlign: 'center',
-                          lineHeight: '1.5',
-                          fontWeight: 'normal',
-                          pointerEvents: 'none'
-                        }}
-                      >
-                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
-                          {tooltips.GP.title}
-                        </div>
-                        <div style={{ color: '#e5e7eb' }}>
-                          {tooltips.GP.description}
-                        </div>
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: 0,
-                            height: 0,
-                            borderLeft: '6px solid transparent',
-                            borderRight: '6px solid transparent',
-                            borderTop: '6px solid rgba(31, 41, 55, 0.95)',
-                            marginTop: '-1px'
-                          }}
-                        />
-                      </div>
-                    )}
-                  </th>
-                  
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">W</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">L</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">T</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider">Win%</th>
-                  
-                  {/* GD with tooltip */}
-                  <th 
-                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
-                    onMouseEnter={() => setActiveTooltip('GD')}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={(e) => handleMobileTooltip(e, 'GD')}
-                  >
-                    GD
-                    {activeTooltip === 'GD' && (
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          bottom: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          backgroundColor: 'rgba(31, 41, 55, 0.95)',
-                          color: 'white',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          whiteSpace: 'normal',
-                          zIndex: 50,
-                          marginBottom: '8px',
-                          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                          width: '220px',
-                          textAlign: 'center',
-                          lineHeight: '1.5',
-                          fontWeight: 'normal',
-                          pointerEvents: 'none'
-                        }}
-                      >
-                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
-                          {tooltips.GD.title}
-                        </div>
-                        <div style={{ color: '#e5e7eb' }}>
-                          {tooltips.GD.description}
-                        </div>
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: 0,
-                            height: 0,
-                            borderLeft: '6px solid transparent',
-                            borderRight: '6px solid transparent',
-                            borderTop: '6px solid rgba(31, 41, 55, 0.95)',
-                            marginTop: '-1px'
-                          }}
-                        />
-                      </div>
-                    )}
-                  </th>
-                  
-                  {/* Continue with other columns... */}
-                  <th 
-                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
-                    onMouseEnter={() => setActiveTooltip('OFF')}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={(e) => handleMobileTooltip(e, 'OFF')}
-                  >
-                    OFF
-                    {activeTooltip === 'OFF' && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
-                        color: 'white',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        whiteSpace: 'normal',
-                        zIndex: 50,
-                        marginBottom: '8px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                        width: '220px',
-                        textAlign: 'center',
-                        lineHeight: '1.5',
-                        fontWeight: 'normal',
-                        pointerEvents: 'none'
-                      }}>
-                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
-                          {tooltips.OFF.title}
-                        </div>
-                        <div style={{ color: '#e5e7eb' }}>
-                          {tooltips.OFF.description}
-                        </div>
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: 0,
-                          height: 0,
-                          borderLeft: '6px solid transparent',
-                          borderRight: '6px solid transparent',
-                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
-                          marginTop: '-1px'
-                        }} />
-                      </div>
-                    )}
-                  </th>
-                  
-                  <th 
-                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
-                    onMouseEnter={() => setActiveTooltip('DEF')}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={(e) => handleMobileTooltip(e, 'DEF')}
-                  >
-                    DEF
-                    {activeTooltip === 'DEF' && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
-                        color: 'white',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        whiteSpace: 'normal',
-                        zIndex: 50,
-                        marginBottom: '8px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                        width: '220px',
-                        textAlign: 'center',
-                        lineHeight: '1.5',
-                        fontWeight: 'normal',
-                        pointerEvents: 'none'
-                      }}>
-                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
-                          {tooltips.DEF.title}
-                        </div>
-                        <div style={{ color: '#e5e7eb' }}>
-                          {tooltips.DEF.description}
-                        </div>
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: 0,
-                          height: 0,
-                          borderLeft: '6px solid transparent',
-                          borderRight: '6px solid transparent',
-                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
-                          marginTop: '-1px'
-                        }} />
-                      </div>
-                    )}
-                  </th>
-                  
-                  <th 
-                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
-                    onMouseEnter={() => setActiveTooltip('NET')}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={(e) => handleMobileTooltip(e, 'NET')}
-                  >
-                    NET
-                    {activeTooltip === 'NET' && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
-                        color: 'white',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        whiteSpace: 'normal',
-                        zIndex: 50,
-                        marginBottom: '8px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                        width: '220px',
-                        textAlign: 'center',
-                        lineHeight: '1.5',
-                        fontWeight: 'normal',
-                        pointerEvents: 'none'
-                      }}>
-                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
-                          {tooltips.NET.title}
-                        </div>
-                        <div style={{ color: '#e5e7eb' }}>
-                          {tooltips.NET.description}
-                        </div>
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: 0,
-                          height: 0,
-                          borderLeft: '6px solid transparent',
-                          borderRight: '6px solid transparent',
-                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
-                          marginTop: '-1px'
-                        }} />
-                      </div>
-                    )}
-                  </th>
-                  
-                  <th 
-                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
-                    onMouseEnter={() => setActiveTooltip('STREAK')}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={(e) => handleMobileTooltip(e, 'STREAK')}
-                  >
-                    STRK
-                    {activeTooltip === 'STREAK' && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
-                        color: 'white',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        whiteSpace: 'normal',
-                        zIndex: 50,
-                        marginBottom: '8px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                        width: '220px',
-                        textAlign: 'center',
-                        lineHeight: '1.5',
-                        fontWeight: 'normal',
-                        pointerEvents: 'none'
-                      }}>
-                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
-                          {tooltips.STREAK.title}
-                        </div>
-                        <div style={{ color: '#e5e7eb' }}>
-                          {tooltips.STREAK.description}
-                        </div>
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: 0,
-                          height: 0,
-                          borderLeft: '6px solid transparent',
-                          borderRight: '6px solid transparent',
-                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
-                          marginTop: '-1px'
-                        }} />
-                      </div>
-                    )}
-                  </th>
-                  
-                  <th 
-                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
-                    onMouseEnter={() => setActiveTooltip('POWER')}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={(e) => handleMobileTooltip(e, 'POWER')}
-                  >
-                    <span style={{ 
-                      background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      fontWeight: 'bold'
-                    }}>PWR</span>
-                    {activeTooltip === 'POWER' && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
-                        color: 'white',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        whiteSpace: 'normal',
-                        zIndex: 50,
-                        marginBottom: '8px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                        width: '220px',
-                        textAlign: 'center',
-                        lineHeight: '1.5',
-                        fontWeight: 'normal',
-                        pointerEvents: 'none'
-                      }}>
-                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
-                          {tooltips.POWER.title}
-                        </div>
-                        <div style={{ color: '#e5e7eb' }}>
-                          {tooltips.POWER.description}
-                        </div>
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: 0,
-                          height: 0,
-                          borderLeft: '6px solid transparent',
-                          borderRight: '6px solid transparent',
-                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
-                          marginTop: '-1px'
-                        }} />
-                      </div>
-                    )}
-                  </th>
-                  
-                  <th 
-                    className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-medium uppercase tracking-wider relative cursor-pointer"
-                    onMouseEnter={() => setActiveTooltip('LAST')}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    onClick={(e) => handleMobileTooltip(e, 'LAST')}
-                  >
-                    LAST
-                    {activeTooltip === 'LAST' && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        backgroundColor: 'rgba(31, 41, 55, 0.95)',
-                        color: 'white',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        whiteSpace: 'normal',
-                        zIndex: 50,
-                        marginBottom: '8px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                        width: '220px',
-                        textAlign: 'center',
-                        lineHeight: '1.5',
-                        fontWeight: 'normal',
-                        pointerEvents: 'none'
-                      }}>
-                        <div style={{ color: '#60a5fa', fontWeight: '600', marginBottom: '4px' }}>
-                          {tooltips.LAST.title}
-                        </div>
-                        <div style={{ color: '#e5e7eb' }}>
-                          {tooltips.LAST.description}
-                        </div>
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: 0,
-                          height: 0,
-                          borderLeft: '6px solid transparent',
-                          borderRight: '6px solid transparent',
-                          borderTop: '6px solid rgba(31, 41, 55, 0.95)',
-                          marginTop: '-1px'
-                        }} />
-                      </div>
-                    )}
-                  </th>
+                <tr style={{ background: '#141417', borderBottom: '1px solid #1f1f23' }}>
+                  <th className="px-2 sm:px-4 py-3 sm:py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 w-10 sm:w-16">#</th>
+                  <th className="px-2 sm:px-4 py-3 sm:py-4 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Player</th>
+                  <ColumnHeader label="GP" tooltipKey="GP" />
+                  <th className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">W</th>
+                  <th className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">L</th>
+                  <th className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs font-medium uppercase tracking-wider text-zinc-600">T</th>
+                  <th className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs font-medium uppercase tracking-wider text-zinc-400">Win%</th>
+                  <ColumnHeader label="GD" tooltipKey="GD" />
+                  <ColumnHeader label="OFF" tooltipKey="OFF" className="hidden lg:table-cell" />
+                  <ColumnHeader label="DEF" tooltipKey="DEF" className="hidden lg:table-cell" />
+                  <ColumnHeader label="NET" tooltipKey="NET" />
+                  <ColumnHeader label="STRK" tooltipKey="STREAK" />
+                  <ColumnHeader label="PWR" tooltipKey="POWER" highlight />
+                  <ColumnHeader label="Last" tooltipKey="LAST" className="hidden sm:table-cell" />
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody>
                 {sortedStats.map((player, index) => {
                   const rank = index + 1
                   const winPct = player.win_percentage || 0
-                  
+                  const isTopThree = rank <= 3
+                  const animationDelay = mounted ? `${index * 30}ms` : '0ms'
+
                   return (
-                    <tr 
+                    <tr
                       key={player.player_id}
-                      className={`
-                        transition-colors
-                        ${rank === 1 ? 'bg-yellow-50 hover:bg-yellow-100' : 
-                          rank === 2 ? 'bg-gray-50 hover:bg-gray-100' : 
-                          rank === 3 ? 'bg-orange-50 hover:bg-orange-100' : 
-                          'hover:bg-gray-50'}
-                      `}
+                      className="group transition-all duration-200"
+                      style={{
+                        background: isTopThree ?
+                          rank === 1 ? 'rgba(251, 191, 36, 0.03)' :
+                          rank === 2 ? 'rgba(156, 163, 175, 0.02)' :
+                          'rgba(205, 127, 50, 0.02)' :
+                          'transparent',
+                        borderBottom: '1px solid #1a1a1d',
+                        animation: mounted ? `fadeSlideIn 0.4s ease-out ${animationDelay} both` : 'none'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = isTopThree ?
+                          rank === 1 ? 'rgba(251, 191, 36, 0.06)' :
+                          rank === 2 ? 'rgba(156, 163, 175, 0.04)' :
+                          'rgba(205, 127, 50, 0.04)' :
+                          'rgba(255, 255, 255, 0.02)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = isTopThree ?
+                          rank === 1 ? 'rgba(251, 191, 36, 0.03)' :
+                          rank === 2 ? 'rgba(156, 163, 175, 0.02)' :
+                          'rgba(205, 127, 50, 0.02)' :
+                          'transparent'
+                      }}
                     >
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm">
-                        <span className={`
-                          ${rank <= 3 ? 'font-bold' : 'font-normal'}
-                          ${rank === 1 ? 'text-yellow-600' : 
-                            rank === 2 ? 'text-gray-500' : 
-                            rank === 3 ? 'text-orange-500' : 'text-gray-700'}
-                        `}>
-                          {rank}
-                        </span>
+                      {/* Rank */}
+                      <td className="px-2 sm:px-4 py-3 sm:py-4">
+                        <RankBadge rank={rank} />
                       </td>
-                      
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm">
-                        <div className="flex items-center gap-1 sm:gap-2">
+
+                      {/* Player */}
+                      <td className="px-2 sm:px-4 py-3 sm:py-4">
+                        <button
+                          onClick={() => fetchPlayerGames(player.player_id, player.name, player.country)}
+                          className="flex items-center gap-2 sm:gap-3 transition-colors duration-150 hover:text-amber-400 text-left active:text-amber-500"
+                        >
                           {player.country && (
-                            <span className="text-sm sm:text-lg">{getCountryFlag(player.country)}</span>
+                            <span className="text-base sm:text-lg opacity-80">{getCountryFlag(player.country)}</span>
                           )}
-                          <span 
-                            className="font-medium text-gray-900 capitalize cursor-pointer hover:text-blue-600"
-                            onClick={() => fetchPlayerGames(player.player_id, player.name)}
+                          <span
+                            className="text-sm font-medium capitalize"
+                            style={{ color: isTopThree ? '#fafafa' : '#e4e4e7' }}
                           >
                             {player.name}
                           </span>
-                        </div>
+                        </button>
                       </td>
 
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm text-gray-600">
+                      {/* GP */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm text-zinc-400 tabular-nums">
                         {player.games_played || 0}
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
-                        <span className="text-green-600 font-medium">{player.wins || 0}</span>
+
+                      {/* W */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm">
+                        <StatValue value={player.wins || 0} positive={true} />
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
-                        <span className="text-red-600 font-medium">{player.losses || 0}</span>
+
+                      {/* L */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm">
+                        <StatValue value={player.losses || 0} positive={false} />
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm text-gray-500">
+
+                      {/* T */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm text-zinc-600 tabular-nums">
                         {player.ties || 0}
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-semibold text-gray-900">
+
+                      {/* Win% */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm font-medium text-zinc-200 tabular-nums">
                         {winPct.toFixed(1)}%
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
-                        <span className={`font-medium ${
-                          player.goal_differential > 0 ? 'text-green-600' : 
-                          player.goal_differential < 0 ? 'text-red-600' : 'text-gray-400'
-                        }`}>
-                          {player.goal_differential > 0 && '+'}{player.goal_differential || 0}
-                        </span>
+
+                      {/* GD */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm">
+                        <StatValue value={player.goal_differential || 0} showSign />
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm text-gray-600">
+
+                      {/* OFF - hidden on mobile */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm text-zinc-400 tabular-nums hidden lg:table-cell">
                         {player.avg_goals_for?.toFixed(1) || '0.0'}
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm text-gray-600">
+
+                      {/* DEF - hidden on mobile */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm text-zinc-400 tabular-nums hidden lg:table-cell">
                         {player.avg_goals_against?.toFixed(1) || '0.0'}
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
-                        <span className={`font-medium ${
-                          player.avg_goal_diff > 0 ? 'text-green-600' : 
-                          player.avg_goal_diff < 0 ? 'text-red-600' : 'text-gray-400'
-                        }`}>
-                          {player.avg_goal_diff > 0 && '+'}{player.avg_goal_diff?.toFixed(1) || '0.0'}
-                        </span>
+
+                      {/* NET */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm">
+                        <StatValue value={player.avg_goal_diff || 0} showSign />
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm">
-                        <span className={`font-medium ${
-                          player.current_streak?.includes('W') ? 'text-green-600' : 
-                          player.current_streak?.includes('L') ? 'text-red-600' : 'text-gray-400'
-                        }`}>
+
+                      {/* Streak */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm">
+                        <span
+                          className="font-medium tabular-nums"
+                          style={{
+                            color: player.current_streak?.includes('W') ? '#4ade80' :
+                                   player.current_streak?.includes('L') ? '#f87171' : '#52525b'
+                          }}
+                        >
                           {player.current_streak || '-'}
                         </span>
                       </td>
 
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center">
-                        <div style={{
-                          display: 'inline-block',
-                          padding: '2px 6px',
-                          borderRadius: '8px',
-                          fontWeight: 'bold',
-                          fontSize: '11px',
-                          background: player.power_rating >= 70 
-                            ? 'linear-gradient(135deg, #0F766E, #10B981)'
-                            : player.power_rating >= 50 
-                            ? 'linear-gradient(135deg, #3B82F6, #60A5FA)'
-                            : player.power_rating >= 30
-                            ? 'linear-gradient(135deg, #6366F1, #A78BFA)'
-                            : 'linear-gradient(135deg, #F472B6, #EF4444)',
-                          color: 'white',
-                          minWidth: '35px'
-                        }}>
-                          {player.power_rating?.toFixed(1) || '0.0'}
-                        </div>
+                      {/* PWR */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center">
+                        <PowerBadge rating={player.power_rating} rank={rank} />
                       </td>
-                      
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm text-gray-600">
-                        {player.last_played 
-                          ? new Date(player.last_played + 'T12:00:00').toLocaleDateString('en-US', { 
-                              weekday: 'short',
-                              month: 'short', 
+
+                      {/* Last Played - hidden on mobile */}
+                      <td className="px-2 sm:px-3 py-3 sm:py-4 text-center text-xs sm:text-sm text-zinc-500 hidden sm:table-cell">
+                        {player.last_played
+                          ? new Date(player.last_played + 'T12:00:00').toLocaleDateString('en-US', {
+                              month: 'short',
                               day: 'numeric'
                             })
                           : '-'}
@@ -953,329 +608,156 @@ export default function LeaderboardPage() {
               </tbody>
             </table>
           </div>
-          
-          {/* Mobile Legend/Instructions - Bottom - Interactive Card */}
-          <div className="sm:hidden bg-gradient-to-r from-gray-50 to-gray-100 p-3">
-            <div style={{
-              background: 'white',
-              borderRadius: '8px',
-              padding: '10px',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-            }}>
-              <div className="flex items-center gap-2">
-                <div style={{
-                  width: '28px',
-                  height: '28px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <span style={{ fontSize: '14px' }}>👤</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <span className="text-xs font-bold text-gray-900">Player Stats</span>
-                    <span style={{
-                      fontSize: '8px',
-                      background: '#10b981',
-                      color: 'white',
-                      padding: '1px 4px',
-                      borderRadius: '4px',
-                      fontWeight: 'bold'
-                    }}>INTERACTIVE</span>
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    Tap any player name to view their last 5 games
-                  </div>
-                </div>
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: '#f3f4f6',
-                  borderRadius: '50%'
-                }}>
-                  <span style={{ fontSize: '10px', color: '#9ca3af' }}>›</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-        
-        {/* Desktop Legend */}
-        <div className="hidden sm:block mt-4 bg-white p-4 rounded-lg shadow-sm mx-2 sm:mx-0">
-          <div className="text-xs text-gray-600">
-            <span className="font-semibold">Legend:</span>
-            <span className="ml-3">GP = Games Played</span>
-            <span className="mx-2">•</span>
-            <span>GD = Goal Differential</span>
-            <span className="mx-2">•</span>
-            <span>OFF = Offensive Rating</span>
-            <span className="mx-2">•</span>
-            <span>DEF = Defensive Rating</span>
-            <span className="mx-2">•</span>
-            <span>NET = Net Rating</span>
-            <span className="mx-2">•</span>
-            <span>STRK = Current Streak</span>
-            <span className="mx-2">•</span>
-            <span>PWR = Power Rating</span>
+
+        {/* Footer Legend */}
+        <footer className="mt-6 px-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-600">
+            <span>GP: Games</span>
+            <span>GD: Goal Diff</span>
+            <span className="hidden sm:inline">OFF: Offense</span>
+            <span className="hidden sm:inline">DEF: Defense</span>
+            <span>NET: Net Rating</span>
+            <span>STRK: Streak</span>
+            <span style={{ color: '#fbbf24' }}>PWR: Power Index</span>
           </div>
-        </div>
+        </footer>
       </div>
 
       {/* Player Modal */}
       {selectedPlayer && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        <div
+          className="fixed inset-0 flex items-center justify-center p-4 z-50"
+          style={{ background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(4px)' }}
           onClick={closePlayerModal}
         >
-          <div 
-            className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden"
+          <div
+            className="w-full max-w-md rounded-xl overflow-hidden"
+            style={{
+              background: '#0f0f11',
+              border: '1px solid #27272a',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-gray-100 px-4 py-3 border-b flex justify-between items-center">
-              <h2 className="text-lg font-semibold capitalize">
-                {selectedPlayer.name}'s Last 5 Games
-              </h2>
-              <button 
+            {/* Modal Header */}
+            <div
+              className="px-6 py-4 flex items-center justify-between"
+              style={{ borderBottom: '1px solid #1f1f23' }}
+            >
+              <div className="flex items-center gap-3">
+                {selectedPlayer.country && (
+                  <span className="text-xl">{getCountryFlag(selectedPlayer.country)}</span>
+                )}
+                <div>
+                  <h2 className="text-lg font-medium capitalize text-zinc-100">
+                    {selectedPlayer.name}
+                  </h2>
+                  <p className="text-xs text-zinc-500">Recent Matches</p>
+                </div>
+              </div>
+              <button
                 onClick={closePlayerModal}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
               >
-                ×
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
               </button>
             </div>
 
-            <div className="p-4 overflow-y-auto">
+            {/* Modal Content */}
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
               {loadingGames ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                  <p className="text-sm text-gray-600 mt-2">Loading games...</p>
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 rounded-full border-2 border-zinc-800 border-t-amber-500 animate-spin" />
                 </div>
               ) : playerGames.length > 0 ? (
                 <div className="space-y-2">
-                  {playerGames.map((game, idx) => (
-                    <div key={game.id} className="border rounded-lg p-3 bg-gray-50">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-gray-600">
+                  {playerGames.map((game) => (
+                    <div
+                      key={game.id}
+                      className="p-4 rounded-lg"
+                      style={{ background: '#18181b', border: '1px solid #27272a' }}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs text-zinc-500">
                           {new Date(game.date).toLocaleDateString('en-US', {
                             weekday: 'short',
                             month: 'short',
                             day: 'numeric'
                           })}
                         </span>
-                        <span className={`
-                          px-2 py-1 rounded text-xs font-bold
-                          ${game.result === 'W' ? 'bg-green-100 text-green-800' : 
-                            game.result === 'L' ? 'bg-red-100 text-red-800' : 
-                            'bg-gray-100 text-gray-800'}
-                        `}>
-                          {game.result === 'W' ? 'WIN' : game.result === 'L' ? 'LOSS' : 'TIE'}
+                        <span
+                          className="px-2 py-0.5 rounded text-xs font-medium"
+                          style={{
+                            background: game.result === 'W' ? 'rgba(74, 222, 128, 0.1)' :
+                                       game.result === 'L' ? 'rgba(248, 113, 113, 0.1)' :
+                                       'rgba(113, 113, 122, 0.1)',
+                            color: game.result === 'W' ? '#4ade80' :
+                                   game.result === 'L' ? '#f87171' : '#a1a1aa'
+                          }}
+                        >
+                          {game.result === 'W' ? 'WIN' : game.result === 'L' ? 'LOSS' : 'DRAW'}
                         </span>
                       </div>
                       <div className="text-center">
-                        <span className="text-xl font-bold text-gray-900">
-                          {game.playerScore} - {game.opponentScore}
+                        <span className="text-2xl font-light text-zinc-100 tabular-nums">
+                          {game.playerScore} – {game.opponentScore}
                         </span>
                       </div>
-                      <div className="text-center mt-1 text-xs">
-                        <span style={getTeamStyle(game.playerTeam)}>
-                          {game.playerTeam === 'A' ? '⚫' : '⚪'} {getTeamName(game.playerTeam)}
-                        </span>
-                        <span className="text-gray-400 mx-1">vs</span>
-                        <span style={getTeamStyle(game.playerTeam === 'A' ? 'B' : 'A')}>
-                          {game.playerTeam === 'A' ? '⚪' : '⚫'} {getTeamName(game.playerTeam === 'A' ? 'B' : 'A')}
-                        </span>
+                      <div className="text-center mt-2 text-xs text-zinc-500">
+                        <span>{game.playerTeam === 'A' ? 'Black' : 'White'}</span>
+                        <span className="mx-2">vs</span>
+                        <span>{game.playerTeam === 'A' ? 'White' : 'Black'}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">No recent games found</p>
+                <div className="text-center py-12">
+                  <p className="text-zinc-500 text-sm">No recent matches</p>
                 </div>
               )}
             </div>
           </div>
         </div>
       )}
-      
-      {/* Floating Help Button - Mobile Only */}
-      <div 
-        className="sm:hidden"
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          zIndex: 40
-        }}
-      >
-        <button
-          onClick={() => setShowMobileHelp(true)}
-          style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            fontSize: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          ?
-        </button>
-      </div>
-      
-      {/* Mobile Help Modal */}
-      {showMobileHelp && (
-        <div 
-          className="sm:hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={() => setShowMobileHelp(false)}
-        >
-          <div 
-            className="bg-white rounded-2xl w-full max-w-sm overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxHeight: '80vh',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            {/* Modal Header */}
-            <div style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              padding: '16px',
-              color: 'white'
-            }}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold">How to Use</h2>
-                <button 
-                  onClick={() => setShowMobileHelp(false)}
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.2)',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: 'none',
-                    fontSize: '18px'
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-            
-            {/* Modal Content */}
-            <div className="p-4 overflow-y-auto">
-              {/* Navigation Section */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    ↔️
-                  </div>
-                  <h3 className="font-bold text-gray-900">Navigation</h3>
-                </div>
-                <p className="text-sm text-gray-600 ml-10">
-                  Swipe left/right on the table to view all statistics columns
-                </p>
-              </div>
-              
-              {/* Column Headers Section */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    📊
-                  </div>
-                  <h3 className="font-bold text-gray-900">Column Meanings</h3>
-                </div>
-                <p className="text-sm text-gray-600 ml-10">
-                  Tap any column header to see what it means
-                </p>
-                <div className="ml-10 mt-2 grid grid-cols-3 gap-1 text-xs">
-                  <span className="bg-gray-100 px-2 py-1 rounded">GP = Games</span>
-                  <span className="bg-gray-100 px-2 py-1 rounded">GD = Goal Diff</span>
-                  <span className="bg-gray-100 px-2 py-1 rounded">OFF = Offense</span>
-                  <span className="bg-gray-100 px-2 py-1 rounded">DEF = Defense</span>
-                  <span className="bg-gray-100 px-2 py-1 rounded">NET = Net</span>
-                  <span className="bg-gray-100 px-2 py-1 rounded">PWR = Power</span>
-                </div>
-              </div>
-              
-              {/* Player Stats Section */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    👤
-                  </div>
-                  <h3 className="font-bold text-gray-900">Player Details</h3>
-                </div>
-                <p className="text-sm text-gray-600 ml-10">
-                  Tap any player's name to view their last 5 games and performance
-                </p>
-              </div>
-              
-              {/* Sorting Section */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    🔄
-                  </div>
-                  <h3 className="font-bold text-gray-900">Sorting</h3>
-                </div>
-                <p className="text-sm text-gray-600 ml-10">
-                  Use the dropdown menu above the table to sort by different stats
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
+      {/* CSS Keyframes */}
+      <style jsx global>{`
+        @keyframes fadeSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #09090b;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #27272a;
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #3f3f46;
+        }
+
+        /* Tabular numbers */
+        .tabular-nums {
+          font-variant-numeric: tabular-nums;
+        }
+      `}</style>
     </div>
   )
 }
