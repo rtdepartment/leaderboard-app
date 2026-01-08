@@ -64,13 +64,13 @@ export default function LeaderboardPage() {
     }
   }
 
-  // Country flag helper function
+  // Country flag helper function - converts any 2-letter ISO code to flag emoji
   const getCountryFlag = (countryCode) => {
-    const flags = {
-      'EG': '🇪🇬', 'HT': '🇭🇹', 'JO': '🇯🇴', 'VN': '🇻🇳', 'UZ': '🇺🇿', 'KE': '🇰🇪', 'FR': '🇫🇷',
-      'US': '🇺🇸', 'GB': '🇬🇧', 'CA': '🇨🇦', 'AU': '🇦🇺', 'DE': '🇩🇪', 'BR': '🇧🇷', 'IN': '🇮🇳'
-    }
-    return countryCode ? (flags[countryCode] || '') : ''
+    if (!countryCode || countryCode.length !== 2) return ''
+    const codePoints = [...countryCode.toUpperCase()].map(
+      char => 127397 + char.charCodeAt(0)
+    )
+    return String.fromCodePoint(...codePoints)
   }
 
   useEffect(() => {
