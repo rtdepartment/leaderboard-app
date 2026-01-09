@@ -387,10 +387,21 @@ export default function LeaderboardPage() {
               </h1>
             </div>
 
-            {/* Sort Control */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider">Sort</span>
-              <select
+            {/* Controls */}
+            <div className="flex items-center gap-4">
+              <a
+                href="/team-builder"
+                className="px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                  color: '#000'
+                }}
+              >
+                Team Balancer
+              </a>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-zinc-500 uppercase tracking-wider hidden sm:inline">Sort</span>
+                <select
                 className="appearance-none px-4 py-2.5 rounded-lg text-sm transition-all duration-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-500/50"
                 style={{
                   background: '#18181b',
@@ -408,6 +419,7 @@ export default function LeaderboardPage() {
                 <option value="goal_differential">Goal Diff</option>
                 <option value="net_rating">Net Rating</option>
               </select>
+              </div>
             </div>
           </div>
         </header>

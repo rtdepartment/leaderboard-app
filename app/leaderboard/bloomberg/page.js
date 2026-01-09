@@ -150,9 +150,17 @@ export default function BloombergLeaderboard() {
             <p className="text-xs text-zinc-500 mt-1">SEASON STANDINGS BY PERFORMANCE INDEX</p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-600">SORT:</span>
-            <select
+          <div className="flex items-center gap-4">
+            <a
+              href="/team-builder"
+              className="text-xs font-mono px-3 py-1.5 border transition-colors"
+              style={{ background: '#f97316', borderColor: '#f97316', color: '#000' }}
+            >
+              TEAM BALANCER
+            </a>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-600">SORT:</span>
+              <select
               className="bg-zinc-900 border border-zinc-800 text-orange-500 text-xs px-3 py-1.5 font-mono focus:outline-none focus:border-orange-500"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -165,6 +173,7 @@ export default function BloombergLeaderboard() {
               <option value="goal_differential">GD</option>
               <option value="net_rating">NET</option>
             </select>
+            </div>
           </div>
         </div>
 

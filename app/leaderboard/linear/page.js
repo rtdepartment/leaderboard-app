@@ -177,12 +177,23 @@ export default function LinearLeaderboard() {
               <p className="mt-2 text-zinc-500">League standings and performance metrics</p>
             </div>
 
-            <div
-              className="flex items-center gap-3 px-4 py-3 rounded-xl"
-              style={{ background: '#1a1a1c', border: '1px solid #27272a' }}
-            >
-              <span className="text-xs text-zinc-500">Sort by</span>
-              <select
+            <div className="flex items-center gap-4">
+              <a
+                href="/team-builder"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+                style={{
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  color: '#fff'
+                }}
+              >
+                Team Balancer
+              </a>
+              <div
+                className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                style={{ background: '#1a1a1c', border: '1px solid #27272a' }}
+              >
+                <span className="text-xs text-zinc-500">Sort by</span>
+                <select
                 className="bg-transparent text-zinc-200 text-sm focus:outline-none cursor-pointer"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -195,6 +206,7 @@ export default function LinearLeaderboard() {
                 <option value="goal_differential" style={{ background: '#1a1a1c' }}>Goal Diff</option>
                 <option value="net_rating" style={{ background: '#1a1a1c' }}>Net Rating</option>
               </select>
+              </div>
             </div>
           </div>
         </header>

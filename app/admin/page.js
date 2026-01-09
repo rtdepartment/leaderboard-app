@@ -581,25 +581,31 @@ export default function AdminPage() {
   // Player card component
   const PlayerCard = ({ playerId, source }) => {
     const player = players.find(p => p.id === playerId)
-    
+
+    // Different colors for different sources
+    const bgColor = source === 'teamA' ? '#DBEAFE' : source === 'teamB' ? '#374151' : '#FFFFFF'
+    const textColor = source === 'teamB' ? '#FFFFFF' : '#1F2937'
+    const borderColor = source === 'teamA' ? '#3B82F6' : source === 'teamB' ? '#1F2937' : '#D1D5DB'
+
     return (
       <div
         draggable="true"
         onDragStart={(e) => handleDragStart(e, playerId, source)}
-        style={{ 
+        style={{
           display: 'inline-block',
-          padding: '8px 12px',
+          padding: '10px 14px',
           margin: '4px',
-          backgroundColor: 'white',
-          border: '1px solid #ddd',
-          borderRadius: '6px',
+          backgroundColor: bgColor,
+          border: `2px solid ${borderColor}`,
+          borderRadius: '8px',
           cursor: 'move',
-          userSelect: 'none'
+          userSelect: 'none',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}
       >
-        <span style={{ marginRight: '6px' }}>{getCountryFlag(player?.country)}</span>
-        <span>{player?.name}</span>
-        <span style={{ marginLeft: '8px' }}>
+        <span style={{ marginRight: '8px', fontSize: '16px' }}>{getCountryFlag(player?.country)}</span>
+        <span style={{ color: textColor, fontWeight: '600', fontSize: '14px' }}>{player?.name}</span>
+        <span style={{ marginLeft: '10px', display: 'inline-flex', gap: '4px' }}>
           {source === 'unassigned' && (
             <>
               {teamA.length < 6 && (
@@ -608,16 +614,19 @@ export default function AdminPage() {
                     e.stopPropagation()
                     movePlayer(playerId, source, 'teamA')
                   }}
-                  style={{ 
-                    fontSize: '16px',
-                    background: 'none',
+                  style={{
+                    fontSize: '12px',
+                    background: '#3B82F6',
+                    color: 'white',
                     border: 'none',
+                    borderRadius: '4px',
                     cursor: 'pointer',
-                    padding: '0 4px'
+                    padding: '4px 8px',
+                    fontWeight: '600'
                   }}
                   title="Move to White Team"
                 >
-                  ⚪
+                  W
                 </button>
               )}
               {teamB.length < 6 && (
@@ -626,76 +635,87 @@ export default function AdminPage() {
                     e.stopPropagation()
                     movePlayer(playerId, source, 'teamB')
                   }}
-                  style={{ 
-                    fontSize: '16px',
-                    background: 'none',
+                  style={{
+                    fontSize: '12px',
+                    background: '#374151',
+                    color: 'white',
                     border: 'none',
+                    borderRadius: '4px',
                     cursor: 'pointer',
-                    padding: '0 4px'
+                    padding: '4px 8px',
+                    fontWeight: '600'
                   }}
                   title="Move to Black Team"
                 >
-                  ⚫
+                  B
                 </button>
               )}
             </>
           )}
-          
+
           {source === 'teamA' && teamB.length < 6 && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 movePlayer(playerId, source, 'teamB')
               }}
-              style={{ 
-                fontSize: '16px',
-                background: 'none',
+              style={{
+                fontSize: '12px',
+                background: '#374151',
+                color: 'white',
                 border: 'none',
+                borderRadius: '4px',
                 cursor: 'pointer',
-                padding: '0 4px'
+                padding: '4px 8px',
+                fontWeight: '600'
               }}
               title="Swap to Black Team"
             >
-              ⇄
+              → B
             </button>
           )}
-          
+
           {source === 'teamB' && teamA.length < 6 && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 movePlayer(playerId, source, 'teamA')
               }}
-              style={{ 
-                fontSize: '16px',
-                background: 'none',
+              style={{
+                fontSize: '12px',
+                background: '#3B82F6',
+                color: 'white',
                 border: 'none',
+                borderRadius: '4px',
                 cursor: 'pointer',
-                padding: '0 4px'
+                padding: '4px 8px',
+                fontWeight: '600'
               }}
               title="Swap to White Team"
             >
-              ⇄
+              → W
             </button>
           )}
-          
+
           {source !== 'unassigned' && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 movePlayer(playerId, source, 'unassigned')
               }}
-              style={{ 
-                fontSize: '14px',
-                background: 'none',
+              style={{
+                fontSize: '12px',
+                background: '#EF4444',
+                color: 'white',
                 border: 'none',
+                borderRadius: '4px',
                 cursor: 'pointer',
-                padding: '0 4px',
-                opacity: 0.6
+                padding: '4px 8px',
+                fontWeight: '600'
               }}
               title="Remove from team"
             >
-              ⌫
+              ✕
             </button>
           )}
         </span>
@@ -844,8 +864,12 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800 mb-4">
-            💡 <strong>Quick buttons:</strong> ⚪ = White Team, ⚫ = Black Team, ⇄ = Swap teams, ⌫ = Remove | Or drag players between areas
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 mb-4">
+            💡 <strong>Quick buttons:</strong>{' '}
+            <span style={{ background: '#3B82F6', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>W</span> = White Team,{' '}
+            <span style={{ background: '#374151', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>B</span> = Black Team,{' '}
+            <span style={{ background: '#374151', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>→</span> = Swap,{' '}
+            <span style={{ background: '#EF4444', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: '600' }}>✕</span> = Remove | Or drag players between areas
           </div>
 
           {/* Three Column Layout */}
@@ -1030,18 +1054,18 @@ export default function AdminPage() {
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'teamB')}
                 style={{
-                  border: '2px dashed #000',
+                  border: '2px dashed #4B5563',
                   borderRadius: '8px',
                   padding: '16px',
                   minHeight: '350px',
-                  backgroundColor: '#F5F5F5'
+                  backgroundColor: '#1F2937'
                 }}
               >
                 {teamB.map(playerId => (
                   <PlayerCard key={playerId} playerId={playerId} source="teamB" />
                 ))}
                 {teamB.length === 0 && (
-                  <div style={{ textAlign: 'center', marginTop: '100px', color: '#999' }}>
+                  <div style={{ textAlign: 'center', marginTop: '100px', color: '#9CA3AF' }}>
                     Drag players here or click ⚫
                   </div>
                 )}
